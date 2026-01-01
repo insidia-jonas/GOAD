@@ -1,0 +1,46 @@
+# Office 365 / Microsoft 365 Apps Installation
+# Uses Office Deployment Tool (ODT) for installation
+# https://docs.microsoft.com/en-us/deployoffice/overview-office-deployment-tool
+
+- name: Create Office setup directory
+  ansible.windows.win_file:
+    path: C:\setup\office365
+    state: directory
+
+- name: Download Office Deployment Tool
+  ansible.windows.win_get_url:
+    url: https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_17830-20162.exe
+    dest: C:\setup\office365\odt.exe
+
+- name: Extract Office Deployment Tool
+  ansible.windows.win_command: C:\setup\office365\odt.exe /quiet /extract:C:\setup\office365
+  args:
+    creates: C:\setup\office365\setup.exe
+
+- name: Copy Office 365 configuration file
+  ansible.windows.win_template:
+    src: office365_config.xml.j2
+    dest: C:\setup\office365\configuration.xml
+
+- name: Download Office 365 installation files
+  ansible.windows.win_command: C:\setup\office365\setup.exe /download C:\setup\office365\configuration.xml
+  args:
+    chdir: C:\setup\office365
+    creates: C:\setup\office365\Office
+  async: 3600
+  poll: 60
+
+- name: Install Office 365
+  ansible.windows.win_command: C:\setup\office365\setup.exe /configure C:\setup\office365\configuration.xml
+  args:
+    chdir: C:\setup\office365
+  register: office_install
+  async: 3600
+  poll: 60
+
+- name: Wait for Office installation to complete
+  ansible.windows.win_wait_for:
+    path: "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE"
+    state: present
+    timeout: 600
+  ignore_errors: yes

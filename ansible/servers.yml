@@ -49,3 +49,8 @@
   hosts: webdav
   roles:
     - { role: 'webdav', tags: 'webdav'}
+
+- name: "Install Microsoft 365 Apps (Office)"
+  hosts: office365
+  roles:
+    - { role: 'office365', tags: 'office365'}

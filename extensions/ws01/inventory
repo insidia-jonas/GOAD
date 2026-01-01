@@ -8,5 +8,14 @@ ws01 ansible_host={{ip_range}}.31 dns_domain=dc01 dict_key=ws01
 [domain]
 ws01
 
+[workstation]
+ws01
+
+[office365]
+ws01
+
+[defender_on]
+ws01
+
 [extensions]
 ws01

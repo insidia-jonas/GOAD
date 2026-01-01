@@ -130,6 +130,11 @@ dc03
 srv03
 [laps_workstation]
 
+; install office 365 on workstations
+; usage : servers.yml
+[office365]
+ws02
+
 ; allow computer update
 ; usage : update.yml
 [update]
