@@ -1,8 +1,8 @@
-# add windows box
+# add windows 11 box
 boxes.append(
   { :name => "{{lab_name}}-WS01",
     :ip => "{{ip_range}}.31",
-    :box => "mayfly/windows10",
+    :box => "gusztavvargadr/windows-11",
     :os => "windows",
     :cpus => 2,
     :mem => 4000

@@ -6,11 +6,8 @@
     ],
     "compatibility": [
         "GOAD",
-        "GOAD-Light",
-        "GOAD-Mini",
         "NHA",
-        "SCCM",
-        "MINILAB"
+        "SCCM"
     ],
     "impact": "none"
 }
