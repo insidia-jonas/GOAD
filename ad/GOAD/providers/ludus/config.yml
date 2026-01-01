@@ -45,10 +45,16 @@ ludus:
     cpus: 2
     windows:
       sysprep: true
-  # NOTE: Windows Server 2008 R2 requires MANUAL setup in Ludus
-  # See: https://docs.ludus.cloud/docs/templates/#windows-2008-r2-x64
-  # After manual VM creation, add to inventory with IP: x.x.x.24
-  # The VM is excluded from Wazuh and Sysmon (not compatible)
+  # Windows Server 2012 R2 - oldest available automated template
+  - vm_name: "{{ range_id }}-GOAD-SRV04"
+    hostname: "{{ range_id }}-SRV04"
+    template: win2012r2-server-x64-template
+    vlan: 10
+    ip_last_octet: 24
+    ram_gb: 2
+    cpus: 2
+    windows:
+      sysprep: true
   - vm_name: "{{ range_id }}-GOAD-WS02"
     hostname: "{{ range_id }}-WS02"
     template: win10-22h2-x64-enterprise-template

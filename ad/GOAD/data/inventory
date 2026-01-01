@@ -174,7 +174,7 @@ srv04
 [wazuh_server]
 wazuh
 
-; wazuh agents - Windows machines (excluding Server 2008 R2)
+; wazuh agents - all Windows domain machines
 ; usage : wazuh.yml
 [wazuh_agents]
 dc01
@@ -182,6 +182,7 @@ dc02
 dc03
 srv02
 srv03
+srv04
 ws02
 
 ; wazuh agents linux - linux machines in domain
@@ -189,7 +190,7 @@ ws02
 [wazuh_agents_linux:children]
 linux_domain
 
-; sysmon installation - Windows machines (excluding Server 2008 R2)
+; sysmon installation - all Windows machines
 ; usage : wazuh.yml
 [sysmon]
 dc01
@@ -197,12 +198,8 @@ dc02
 dc03
 srv02
 srv03
-ws02
-
-; legacy servers without Wazuh/Sysmon support
-; Server 2008 R2 requires manual Ludus setup
-[legacy_servers]
 srv04
+ws02
 
 ;stay empty until override
 [extensions]
