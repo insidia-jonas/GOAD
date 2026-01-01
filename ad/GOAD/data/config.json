@@ -249,6 +249,60 @@
                     }
                 }
             }
+        },
+        "srv04" : {
+            "hostname" : "oldtown",
+            "type" : "server",
+            "local_admin_password": "L3g4cyS3rv3r!",
+            "domain" : "sevenkingdoms.local",
+            "path" : "DC=sevenkingdoms,DC=local",
+            "use_laps": false,
+            "local_groups" : {
+                "Administrators" : [
+                    "sevenkingdoms\\maester.pycelle"
+                ],
+                "Remote Desktop Users" : [
+                    "sevenkingdoms\\Small Council"
+                ]
+            },
+            "scripts" : [],
+            "vulns" : ["disable_firewall", "openshares", "smbv1", "coercion"],
+            "vulns_vars" : {
+                "shares" : {
+                    "archives" : {
+                        "path"   : "C:\\archives",
+                        "list"   : "yes",
+                        "full"   : "SEVENKINGDOMS\\Small Council",
+                        "read"   : "Users"
+                    }
+                }
+            }
+        },
+        "ws02" : {
+            "hostname" : "theeyrie",
+            "type" : "workstation",
+            "local_admin_password": "W0rkst4t10n!",
+            "domain" : "north.sevenkingdoms.local",
+            "path" : "DC=north,DC=sevenkingdoms,DC=local",
+            "use_laps": false,
+            "local_groups" : {
+                "Administrators" : [
+                    "north\\catelyn.stark"
+                ],
+                "Remote Desktop Users" : [
+                    "north\\Stark"
+                ]
+            },
+            "scripts" : [],
+            "vulns" : ["disable_firewall", "coercion", "autologon"],
+            "vulns_vars" : {
+                "autologon" : {
+                    "catelyn.stark" : {
+                        "username" : "north\\catelyn.stark",
+                        "password" : "robbsansabradonaryarickon"
+                    }
+                }
+            }
         }
     },
     "domains" : {

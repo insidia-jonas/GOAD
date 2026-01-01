@@ -46,3 +46,23 @@
   private_ip_address = "{{ip_range}}.23"
   password           = "978i2pF43UJ-"
 }
+# Windows Server 2008 R2 - Legacy server (Note: AWS may not have 2008R2 AMI, use 2012R2 as fallback)
+"srv04" = {
+  name               = "srv04"
+  domain             = "sevenkingdoms.local"
+  windows_sku        = "2008R2-Datacenter"
+  ami                = "ami-0e1e1e5e5e5e5e5e5"
+  instance_type      = "t2.medium"
+  private_ip_address = "{{ip_range}}.24"
+  password           = "L3g4cyS3rv3r!"
+}
+# Windows 10 workstation (AWS uses Server for workstations)
+"ws02" = {
+  name               = "ws02"
+  domain             = "north.sevenkingdoms.local"
+  windows_sku        = "Windows-10-Enterprise"
+  ami                = "ami-0f1f1e5e5e5e5e5e5"
+  instance_type      = "t2.medium"
+  private_ip_address = "{{ip_range}}.32"
+  password           = "W0rkst4t10n!"
+}

@@ -8,5 +8,9 @@ boxes = [
   # windows server 2025
   { :name => "GOAD-SRV02", :ip => "{{ip_range}}.22", :box => "gusztavvargadr/windows-server-2025-standard", :os => "windows", :cpus => 2, :mem => 6000},
   # windows server 2022
-  { :name => "GOAD-SRV03", :ip => "{{ip_range}}.23", :box => "StefanScherer/windows_2022", :box_version => "2023.10.15", :os => "windows", :cpus => 2, :mem => 5000}
+  { :name => "GOAD-SRV03", :ip => "{{ip_range}}.23", :box => "StefanScherer/windows_2022", :box_version => "2023.10.15", :os => "windows", :cpus => 2, :mem => 5000},
+  # windows server 2008 R2 - legacy server
+  { :name => "GOAD-SRV04", :ip => "{{ip_range}}.24", :box => "jborean93/WindowsServer2008R2", :os => "windows", :cpus => 2, :mem => 2048},
+  # windows 10 workstation
+  { :name => "GOAD-WS02",  :ip => "{{ip_range}}.32", :box => "gusztavvargadr/windows-10", :os => "windows", :cpus => 2, :mem => 4000}
 ]

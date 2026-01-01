@@ -51,3 +51,25 @@
   password           = "978i2pF43UJ-"
   size               = "Standard_B2s"
 }
+# Windows Server 2008 R2 - Legacy server
+"srv04" = {
+  name               = "srv04"
+  publisher          = "MicrosoftWindowsServer"
+  offer              = "WindowsServer"
+  windows_sku        = "2008-R2-SP1"
+  windows_version    = "latest"
+  private_ip_address = "{{ip_range}}.24"
+  password           = "L3g4cyS3rv3r!"
+  size               = "Standard_B2s"
+}
+# Windows 10 workstation
+"ws02" = {
+  name               = "ws02"
+  publisher          = "MicrosoftWindowsDesktop"
+  offer              = "Windows-10"
+  windows_sku        = "win10-22h2-pro"
+  windows_version    = "latest"
+  private_ip_address = "{{ip_range}}.32"
+  password           = "W0rkst4t10n!"
+  size               = "Standard_B2s"
+}

@@ -48,3 +48,23 @@
   ip                 = "{{ip_range}}.23/24"
   gateway            = "{{ip_range}}.1"
 }
+"srv04" = {
+  name               = "SRV04"
+  desc               = "SRV04 - windows server 2008 R2 - {{ip_range}}.24"
+  cores              = 2
+  memory             = 2048
+  clone              = "WinServer2008R2_x64"
+  dns                = "{{ip_range}}.1"
+  ip                 = "{{ip_range}}.24/24"
+  gateway            = "{{ip_range}}.1"
+}
+"ws02" = {
+  name               = "WS02"
+  desc               = "WS02 - windows 10 - {{ip_range}}.32"
+  cores              = 2
+  memory             = 4096
+  clone              = "Windows10_22h2_x64"
+  dns                = "{{ip_range}}.1"
+  ip                 = "{{ip_range}}.32/24"
+  gateway            = "{{ip_range}}.1"
+}

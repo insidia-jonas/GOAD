@@ -51,6 +51,8 @@ dc02
 dc03
 srv02
 srv03
+srv04
+ws02
 
 [linux_domain]
 
@@ -66,10 +68,12 @@ dc03
 [server]
 srv02
 srv03
+srv04
 
 ; workstation to enroll (mandatory if you want workstation)
 ; usage : ad-servers.yml, laps.yml
 [workstation]
+ws02
 
 ; parent domain controler (mandatory)
 ; usage : ad-servers.yml
@@ -138,6 +142,7 @@ dc01
 dc02
 dc03
 srv03
+srv04
 
 ; allow defender
 ; usage : security.yml
@@ -146,11 +151,13 @@ dc01
 dc02
 dc03
 srv03
+ws02
 
 ; disable defender
 ; usage : security.yml
 [defender_off]
 srv02
+srv04
 
 ;stay empty until override
 [extensions]
