@@ -62,3 +62,11 @@ ludus:
     cpus: 2
     windows:
       sysprep: true
+  - vm_name: "{{ range_id }}-GOAD-WAZUH"
+    hostname: "{{ range_id }}-WAZUH"
+    template: debian-12-x64-server-template
+    vlan: 10
+    ip_last_octet: 51
+    ram_gb: 8
+    cpus: 2
+    linux: true

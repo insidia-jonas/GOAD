@@ -68,3 +68,13 @@
   ip                 = "{{ip_range}}.32/24"
   gateway            = "{{ip_range}}.1"
 }
+"wazuh" = {
+  name               = "WAZUH"
+  desc               = "WAZUH - ubuntu 22.04 - {{ip_range}}.51"
+  cores              = 2
+  memory             = 8192
+  clone              = "Ubuntu2204_x64"
+  dns                = "{{ip_range}}.1"
+  ip                 = "{{ip_range}}.51/24"
+  gateway            = "{{ip_range}}.1"
+}

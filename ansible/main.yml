@@ -56,4 +56,8 @@
 # specifics vulns linked to the scenario are here
 - import_playbook: vulnerabilities.yml
 
+## WAZUH EDR -----
+# Install Wazuh Manager and Agents for EDR monitoring
+- import_playbook: wazuh.yml
+
 - import_playbook: reboot.yml

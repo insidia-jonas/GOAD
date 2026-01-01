@@ -12,5 +12,7 @@ boxes = [
   # windows server 2008 R2 - legacy server
   { :name => "GOAD-SRV04", :ip => "{{ip_range}}.24", :box => "jborean93/WindowsServer2008R2", :os => "windows", :cpus => 2, :mem => 2048},
   # windows 10 workstation
-  { :name => "GOAD-WS02",  :ip => "{{ip_range}}.32", :box => "gusztavvargadr/windows-10", :os => "windows", :cpus => 2, :mem => 4000}
+  { :name => "GOAD-WS02",  :ip => "{{ip_range}}.32", :box => "gusztavvargadr/windows-10", :os => "windows", :cpus => 2, :mem => 4000},
+  # wazuh EDR server
+  { :name => "GOAD-WAZUH", :ip => "{{ip_range}}.51", :box => "bento/ubuntu-22.04", :os => "linux", :cpus => 2, :mem => 8000, :forwarded_port => [ {:guest => 22, :host => 2210, :id => "ssh"} ]}
 ]

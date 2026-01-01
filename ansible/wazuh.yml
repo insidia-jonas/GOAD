@@ -1,0 +1,17 @@
+---
+# Wazuh EDR Installation Playbook
+# Installs Wazuh Manager on Linux server and Wazuh Agents on all Windows machines
+# Credits to SOCFortress and Mayfly277
+
+- name: Install and configure Wazuh Manager
+  hosts: wazuh_server
+  become: yes
+  roles:
+    - { role: 'wazuh_manager', tags: 'wazuh_manager' }
+
+- name: Install Wazuh Agent on Windows machines
+  hosts: wazuh_agents
+  roles:
+    - { role: 'wazuh_agent', tags: 'wazuh_agent' }
+  vars:
+    wazuh_manager_host: "{{ hostvars['wazuh']['ansible_host'] }}"
