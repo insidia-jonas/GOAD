@@ -24,6 +24,6 @@ srv04 ansible_host={{ip_range}}.24 dns_domain=dc03 dict_key=srv04
 ; ------------------------------------------------
 ws02 ansible_host={{ip_range}}.32 dns_domain=dc01 dict_key=ws02
 ; ------------------------------------------------
-; wazuh EDR server (Linux)
+; wazuh EDR server (Linux - Ubuntu)
 ; ------------------------------------------------
-wazuh ansible_host={{ip_range}}.51 ansible_connection=ssh ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+wazuh ansible_host={{ip_range}}.51 ansible_connection=ssh ansible_user=vagrant ansible_ssh_common_args='-o StrictHostKeyChecking=no'
