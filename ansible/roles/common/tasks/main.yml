@@ -41,12 +41,14 @@
     Ensure: present
     UserAuthentication: Secure
   when: ansible_distribution_version is version('10.0', '>=')
+  ignore_errors: yes
+  register: rdp_dsc_result
 
-- name: Windows | Enable Remote Desktop (legacy)
+- name: Windows | Enable Remote Desktop (legacy/fallback)
   win_shell: |
     Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
     Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-  when: ansible_distribution_version is version('10.0', '<')
+  when: ansible_distribution_version is version('10.0', '<') or (rdp_dsc_result is defined and rdp_dsc_result.failed | default(false))
   ignore_errors: yes
 
 - name: Windows | Check for xNetworking Powershell module
