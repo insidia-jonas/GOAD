@@ -25,8 +25,9 @@ srv04 ansible_host={{ip_range}}.24 dns_domain=dc03 dict_key=srv04
 ws02 ansible_host={{ip_range}}.32 dns_domain=dc01 dict_key=ws02
 ; ------------------------------------------------
 ; wazuh EDR server (Linux - Debian 12)
+; Uses Ludus SSH key authentication (no password)
 ; ------------------------------------------------
-wazuh ansible_host={{ip_range}}.51 ansible_connection=ssh ansible_user=debian ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+wazuh ansible_host={{ip_range}}.51 ansible_connection=ssh ansible_user=debian ansible_password= ansible_ssh_common_args='-o StrictHostKeyChecking=no'
 
 [all:vars]
 force_dns_server=no
