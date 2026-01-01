@@ -25,11 +25,14 @@
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     Install-PackageProvider -Name NuGet -Force
     Install-Module PowerShellGet -Force
+  # Skip on Windows Server 2012 R2 (6.3) - PowerShell 4.0 doesn't have Install-PackageProvider
+  when: ansible_os_version is version('10.0', '>=')
 
 - name: Windows | Check for ComputerManagementDsc Powershell module
   win_psmodule:
     name: ComputerManagementDsc
     state: present
+  when: ansible_os_version is version('10.0', '>=')
 
 - name: Windows | Enable Remote Desktop
   win_dsc:
@@ -37,11 +40,20 @@
     IsSingleInstance : 'yes'
     Ensure: present
     UserAuthentication: Secure
+  when: ansible_os_version is version('10.0', '>=')
+
+- name: Windows | Enable Remote Desktop (legacy)
+  win_shell: |
+    Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+    Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+  when: ansible_os_version is version('10.0', '<')
+  ignore_errors: yes
 
 - name: Windows | Check for xNetworking Powershell module
   win_psmodule:
     name: xNetworking
     state: present
+  when: ansible_os_version is version('10.0', '>=')
 
 - name: Firewall | Allow RDP through Firewall
   win_dsc:
@@ -54,6 +66,13 @@
     Localport: "3389"
     Protocol: "TCP"
     Description: "Opens the listener port for RDP"
+  when: ansible_os_version is version('10.0', '>=')
+
+- name: Firewall | Allow RDP through Firewall (legacy)
+  win_shell: |
+    netsh advfirewall firewall set rule group="Remote Desktop" new enable=yes
+  when: ansible_os_version is version('10.0', '<')
+  ignore_errors: yes
 
 - name: Add a network static route
   community.windows.win_route:
