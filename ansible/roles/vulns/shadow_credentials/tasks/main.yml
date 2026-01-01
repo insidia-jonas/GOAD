@@ -1,0 +1,49 @@
+# Shadow Credentials vulnerability - allows adding msDS-KeyCredentialLink
+# This enables Shadow Credentials attack (CVE-2021-42282)
+# https://posts.specterops.io/shadow-credentials-abusing-key-trust-account-mapping-for-takeover-8ee1a53566ab
+
+- name: Grant WriteKeyCredentialLink permission (Shadow Credentials)
+  ansible.windows.win_powershell:
+    script: |
+      [CmdletBinding()]
+      param (
+          [String]$for,
+          [String]$to
+      )
+      Import-Module ActiveDirectory
+      Set-Location AD:
+
+      # Get the SID for the principal that will have write access
+      $forSID = New-Object System.Security.Principal.SecurityIdentifier (Get-ADObject -Filter "SamAccountName -eq '$for'" -Properties objectSID).objectSID
+
+      # Get target object
+      $extra_args = @{}
+      if ($to -match "\\") {
+        $extra_args.Server = $to.Split("\")[0]
+        $to = $to.Split("\")[1]
+      }
+      $toObj = Get-ADObject -Filter "SamAccountName -eq '$to'" @extra_args
+      $objOU = ($toObj).DistinguishedName
+      $objAcl = Get-Acl -Path "$objOU"
+
+      # GUID for msDS-KeyCredentialLink attribute
+      $keyCredentialLinkGUID = [GUID]"5b47d60f-6090-40b2-9f37-2a4de88f3063"
+
+      $type = [System.Security.AccessControl.AccessControlType]"Allow"
+      $inheritanceType = [System.DirectoryServices.ActiveDirectorySecurityInheritance]"None"
+      $adRight = [System.DirectoryServices.ActiveDirectoryRights]"WriteProperty"
+
+      $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $forSID,$adRight,$type,$keyCredentialLinkGUID,$inheritanceType
+      $objAcl.AddAccessRule($ace)
+      Set-Acl -AclObject $objAcl -Path "$objOU"
+
+      $Ansible.Changed = $true
+    parameters:
+      for: "{{item.value.for}}"
+      to: "{{item.value.to}}"
+  vars:
+    ansible_become: yes
+    ansible_become_method: runas
+    ansible_become_user: "{{domain_username}}"
+    ansible_become_password: "{{domain_password}}"
+  with_dict: "{{ vulns_vars }}"

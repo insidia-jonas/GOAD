@@ -1,0 +1,52 @@
+# Pre-Windows 2000 Compatible Access
+# Adds Anonymous to Pre-Windows 2000 Compatible Access group
+# Enables anonymous LDAP enumeration
+# https://adsecurity.org/?p=3164
+
+- name: Add Anonymous Logon to Pre-Windows 2000 Compatible Access
+  ansible.windows.win_powershell:
+    script: |
+      Import-Module ActiveDirectory
+      $group = Get-ADGroup "Pre-Windows 2000 Compatible Access"
+      $members = Get-ADGroupMember $group -ErrorAction SilentlyContinue | Select-Object -ExpandProperty SamAccountName
+
+      # Add ANONYMOUS LOGON
+      if ("S-1-5-7" -notin $members) {
+        $anonymousSID = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-7")
+        Add-ADGroupMember -Identity $group -Members $anonymousSID
+        $Ansible.Changed = $true
+      } else {
+        $Ansible.Changed = $false
+      }
+  vars:
+    ansible_become: yes
+    ansible_become_method: runas
+    ansible_become_user: "{{domain_username}}"
+    ansible_become_password: "{{domain_password}}"
+  ignore_errors: yes
+
+- name: Enable Anonymous LDAP Binding
+  ansible.windows.win_powershell:
+    script: |
+      Import-Module ActiveDirectory
+      $rootDSE = Get-ADRootDSE
+      $configNC = $rootDSE.configurationNamingContext
+
+      # Set dsHeuristics to allow anonymous LDAP operations
+      try {
+        $dsService = Get-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,$configNC" -Properties dsHeuristics
+        if ($dsService.dsHeuristics -ne "0000002") {
+          Set-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,$configNC" -Replace @{dsHeuristics="0000002"}
+          $Ansible.Changed = $true
+        } else {
+          $Ansible.Changed = $false
+        }
+      } catch {
+        $Ansible.Changed = $false
+      }
+  vars:
+    ansible_become: yes
+    ansible_become_method: runas
+    ansible_become_user: "{{domain_username}}"
+    ansible_become_password: "{{domain_password}}"
+  ignore_errors: yes

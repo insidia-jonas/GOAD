@@ -1,0 +1,28 @@
+# Coercion Attack Enablement
+# Enables WebClient service and other services for PetitPotam, PrinterBug, etc.
+# https://github.com/topotam/PetitPotam
+# https://github.com/leechristensen/SpoolSample
+
+- name: Enable WebClient service (for PetitPotam/Coercion attacks)
+  ansible.windows.win_service:
+    name: WebClient
+    start_mode: auto
+    state: started
+
+- name: Ensure WebDAV Redirector is installed
+  ansible.windows.win_feature:
+    name: WebDAV-Redirector
+    state: present
+  when: ansible_os_name is search("Server")
+
+- name: Enable Print Spooler service (for PrinterBug/SpoolSample)
+  ansible.windows.win_service:
+    name: Spooler
+    start_mode: auto
+    state: started
+
+- name: Ensure Remote Registry is enabled (for remote enumeration)
+  ansible.windows.win_service:
+    name: RemoteRegistry
+    start_mode: auto
+    state: started

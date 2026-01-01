@@ -1,0 +1,44 @@
+# ADCS ESC8 - Web Enrollment NTLM Relay
+# Enables HTTP-based certificate enrollment which is vulnerable to NTLM relay
+# https://posts.specterops.io/certified-pre-owned-d95910965cd2
+
+- name: Install ADCS Web Enrollment feature (ESC8)
+  ansible.windows.win_feature:
+    name: ADCS-Web-Enrollment
+    state: present
+    include_management_tools: yes
+  register: adcs_web_result
+
+- name: Configure ADCS Web Enrollment
+  ansible.windows.win_powershell:
+    script: |
+      # Configure Web Enrollment without requiring HTTPS
+      Import-Module ServerManager
+      try {
+        Install-AdcsWebEnrollment -CAConfig "{{ca_server}}\{{ca_name}}" -Force -ErrorAction Stop
+        $Ansible.Changed = $true
+      } catch {
+        if ($_.Exception.Message -like "*already configured*") {
+          $Ansible.Changed = $false
+        } else {
+          throw $_
+        }
+      }
+  vars:
+    ansible_become: yes
+    ansible_become_method: runas
+    ansible_become_user: "{{domain_username}}"
+    ansible_become_password: "{{domain_password}}"
+
+- name: Disable Extended Protection for Authentication (enables NTLM relay)
+  ansible.windows.win_powershell:
+    script: |
+      Import-Module WebAdministration
+      $path = "IIS:\Sites\Default Web Site\CertSrv"
+      if (Test-Path $path) {
+        Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" `
+          -Name "extendedProtection.tokenChecking" -Value "None" -PSPath $path
+        Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" `
+          -Name "extendedProtection.flags" -Value "None" -PSPath $path
+        $Ansible.Changed = $true
+      }

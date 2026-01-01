@@ -1,0 +1,29 @@
+# Machine Account Quota vulnerability
+# Sets ms-DS-MachineAccountQuota to allow users to add computer accounts
+# Required for RBCD attacks (Resource-Based Constrained Delegation)
+# https://www.ired.team/offensive-security-experiments/active-directory-kerberos-abuse/resource-based-constrained-delegation-ad-computer-object-take-over-and-target-machine-account-takeover
+
+- name: Set MachineAccountQuota to enable computer object creation
+  ansible.windows.win_powershell:
+    script: |
+      [CmdletBinding()]
+      param (
+          [int]$quota
+      )
+      Import-Module ActiveDirectory
+      $domain = Get-ADDomain
+      $currentQuota = (Get-ADObject $domain.DistinguishedName -Properties 'ms-DS-MachineAccountQuota').'ms-DS-MachineAccountQuota'
+
+      if ($currentQuota -ne $quota) {
+        Set-ADDomain -Identity $domain.DistinguishedName -Replace @{"ms-DS-MachineAccountQuota"=$quota}
+        $Ansible.Changed = $true
+      } else {
+        $Ansible.Changed = $false
+      }
+    parameters:
+      quota: "{{ machine_account_quota | default(10) }}"
+  vars:
+    ansible_become: yes
+    ansible_become_method: runas
+    ansible_become_user: "{{domain_username}}"
+    ansible_become_password: "{{domain_password}}"

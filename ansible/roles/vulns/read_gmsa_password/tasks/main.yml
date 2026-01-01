@@ -1,0 +1,36 @@
+# ReadGMSAPassword Misconfiguration
+# Grants ReadGMSAPassword right to unauthorized users
+# https://adsecurity.org/?p=4367
+
+- name: Grant ReadGMSAPassword to user
+  ansible.windows.win_powershell:
+    script: |
+      [CmdletBinding()]
+      param (
+          [String]$gmsa_name,
+          [String]$principal
+      )
+      Import-Module ActiveDirectory
+
+      $gmsa = Get-ADServiceAccount -Identity $gmsa_name
+      $principalObj = Get-ADObject -Filter "SamAccountName -eq '$principal'"
+
+      # Get current principals allowed to retrieve password
+      $currentPrincipals = $gmsa.PrincipalsAllowedToRetrieveManagedPassword
+
+      if ($principalObj.DistinguishedName -notin $currentPrincipals) {
+        $newPrincipals = @($currentPrincipals) + @($principalObj.DistinguishedName)
+        Set-ADServiceAccount -Identity $gmsa_name -PrincipalsAllowedToRetrieveManagedPassword $newPrincipals
+        $Ansible.Changed = $true
+      } else {
+        $Ansible.Changed = $false
+      }
+    parameters:
+      gmsa_name: "{{item.value.gmsa}}"
+      principal: "{{item.value.principal}}"
+  vars:
+    ansible_become: yes
+    ansible_become_method: runas
+    ansible_become_user: "{{domain_username}}"
+    ansible_become_password: "{{domain_password}}"
+  with_dict: "{{ vulns_vars }}"

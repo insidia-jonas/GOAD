@@ -19,7 +19,12 @@
                 ]
             },
             "scripts" : ["sidhistory.ps1"],
-            "vulns" : ["disable_firewall", "adcs_esc10_case1", "adcs_esc10_case2"],
+            "vulns" : ["disable_firewall", "adcs_esc10_case1", "adcs_esc10_case2", "ldap_signing_disabled", "machine_account_quota", "pre_windows_2000", "coercion", "dnsadmins"],
+            "vulns_vars" : {
+                "dnsadmins": {
+                    "petyer_dnsadmin": {"user": "petyer.baelish"}
+                }
+            },
             "security": ["account_is_sensitive"],
             "security_vars": {
                 "account_is_sensitive" : { "renly": {"account" : "renly.baratheon"} }
@@ -50,7 +55,7 @@
                 "gpo_abuse.ps1",
                 "rdp_scheduler.ps1"
             ],
-            "vulns" : ["disable_firewall","directory", "credentials", "autologon", "files", "enable_llmnr", "enable_nbt-ns", "shares"],
+            "vulns" : ["disable_firewall","directory", "credentials", "autologon", "files", "enable_llmnr", "enable_nbt-ns", "shares", "coercion"],
             "vulns_vars" : {
                 "directory": {
                     "setup": "c:\\setup"
@@ -184,7 +189,7 @@
                 ]
             },
             "scripts" : ["asrep_roasting2.ps1"],
-            "vulns" : ["ntlmdowngrade", "disable_firewall",  "adcs_esc7", "adcs_esc13", "adcs_esc15"],
+            "vulns" : ["ntlmdowngrade", "disable_firewall",  "adcs_esc7", "adcs_esc13", "adcs_esc15", "adcs_esc8", "coercion", "shadow_credentials"],
             "vulns_vars" : {
                 "adcs_esc7": {
                     "viserys": {
@@ -196,6 +201,9 @@
                         "adcs_esc13_group": "greatmaster",
                         "adcs_esc13_template": "ESC13"
                     }
+                },
+                "shadow_credentials": {
+                    "missandei_shadow_daenerys": {"for": "missandei", "to": "daenerys.targaryen"}
                 }
             }
         },
@@ -215,7 +223,12 @@
                 "essos\\Dothraki"
             ],
             "scripts" : [],
-            "vulns" : ["openshares","disable_firewall", "adcs_esc6", "adcs_esc11"],
+            "vulns" : ["openshares","disable_firewall", "adcs_esc6", "adcs_esc11", "coercion", "read_gmsa_password"],
+            "vulns_vars" : {
+                "read_gmsa_password": {
+                    "missandei_read_gmsa": {"gmsa": "gmsaDragon", "principal": "missandei"}
+                }
+            },
             "security": ["enable_run_as_ppl"],
             "mssql":{
                 "sa_password": "sa_P@ssw0rd!Ess0s",
@@ -383,6 +396,24 @@
                     "groups"      : [],
                     "path"        : "CN=Users,DC=essos,DC=local",
                     "spns"        : ["MSSQLSvc/braavos.essos.local:1433","MSSQLSvc/braavos.essos.local"]
+                },
+                "rhaegal" : {
+                    "firstname"   : "rhaegal",
+                    "surname"     : "-",
+                    "password"    : "DragonFire2024!",
+                    "city"        : "-",
+                    "description" : "Dragon keeper - Temp pass: DragonFire2024!",
+                    "groups"      : [],
+                    "path"        : "CN=Users,DC=essos,DC=local"
+                },
+                "grey.worm" : {
+                    "firstname"   : "Grey",
+                    "surname"     : "Worm",
+                    "password"    : "Uns0llied!",
+                    "city"        : "-",
+                    "description" : "Unsullied Commander",
+                    "groups"      : ["Targaryen"],
+                    "path"        : "CN=Users,DC=essos,DC=local"
                 }
             }
         },
@@ -598,7 +629,8 @@
                 "GenericAll_group_acrrosdom_dc" : {"for": "AcrossTheNarrowSea", "to": "kingslanding$", "right": "GenericAll", "inheritance": "None"},
                 "GenericAll_varys_domadmin" : {"for": "lord.varys", "to": "Domain Admins", "right": "GenericAll", "inheritance": "None"},
                 "GenericAll_varys_domadmin_holder" : {"for": "lord.varys", "to": "CN=AdminSDHolder,CN=System,DC=sevenkingdoms,DC=local", "right": "GenericAll", "inheritance": "None"},
-                "WriteDACL_renly_Crownlands" : {"for": "renly.baratheon", "to": "OU=Crownlands,DC=sevenkingdoms,DC=local", "right": "WriteDacl", "inheritance": "None"}
+                "WriteDACL_renly_Crownlands" : {"for": "renly.baratheon", "to": "OU=Crownlands,DC=sevenkingdoms,DC=local", "right": "WriteDacl", "inheritance": "None"},
+                "GenericWrite_qyburn_cersei" : {"for": "qyburn", "to": "cersei.lannister", "right": "GenericWrite", "inheritance": "None"}
             },
             "users" : {
                 "tywin.lannister" : {
@@ -699,6 +731,42 @@
                     "description" : "Maester Pycelle",
                     "groups"      : ["Small Council"],
                     "path"        : "OU=Crownlands,DC=sevenkingdoms,DC=local"
+                },
+                "qyburn" : {
+                    "firstname"   : "Qyburn",
+                    "surname"     : "-",
+                    "password"    : "N3cr0m4nc3r!",
+                    "city"        : "King's Landing",
+                    "description" : "Hand of the Queen - Password: N3cr0m4nc3r!",
+                    "groups"      : ["Small Council"],
+                    "path"        : "OU=Crownlands,DC=sevenkingdoms,DC=local"
+                },
+                "ilyn.payne" : {
+                    "firstname"   : "Ilyn",
+                    "surname"     : "Payne",
+                    "password"    : "SilentSword!",
+                    "city"        : "King's Landing",
+                    "description" : "Royal Executioner (SilentSword!)",
+                    "groups"      : ["KingsGuard"],
+                    "path"        : "OU=Crownlands,DC=sevenkingdoms,DC=local"
+                },
+                "sandor.clegane" : {
+                    "firstname"   : "Sandor",
+                    "surname"     : "Clegane",
+                    "password"    : "Th3H0und!",
+                    "city"        : "King's Landing",
+                    "description" : "The Hound - Personal Guard",
+                    "groups"      : ["KingsGuard"],
+                    "path"        : "OU=Crownlands,DC=sevenkingdoms,DC=local"
+                },
+                "gregor.clegane" : {
+                    "firstname"   : "Gregor",
+                    "surname"     : "Clegane",
+                    "password"    : "Th3M0unta1n!",
+                    "city"        : "King's Landing",
+                    "description" : "The Mountain",
+                    "groups"      : [],
+                    "path"        : "OU=Westerlands,DC=sevenkingdoms,DC=local"
                 }
             }
         }

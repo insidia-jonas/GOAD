@@ -1,0 +1,35 @@
+# DNSAdmins Privilege Escalation
+# Adds user to DNSAdmins group for DLL injection attack
+# https://adsecurity.org/?p=4064
+
+- name: Add user to DNSAdmins group
+  ansible.windows.win_powershell:
+    script: |
+      [CmdletBinding()]
+      param (
+          [String]$user
+      )
+      Import-Module ActiveDirectory
+
+      try {
+        $dnsAdmins = Get-ADGroup "DnsAdmins"
+        $members = Get-ADGroupMember $dnsAdmins | Select-Object -ExpandProperty SamAccountName
+
+        if ($user -notin $members) {
+          Add-ADGroupMember -Identity $dnsAdmins -Members $user
+          $Ansible.Changed = $true
+        } else {
+          $Ansible.Changed = $false
+        }
+      } catch {
+        # DNSAdmins group might not exist if DNS role not installed
+        $Ansible.Changed = $false
+      }
+    parameters:
+      user: "{{item.value.user}}"
+  vars:
+    ansible_become: yes
+    ansible_become_method: runas
+    ansible_become_user: "{{domain_username}}"
+    ansible_become_password: "{{domain_password}}"
+  with_dict: "{{ vulns_vars }}"
