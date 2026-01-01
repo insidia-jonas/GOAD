@@ -28,7 +28,7 @@ ludus:
       sysprep: true
   - vm_name: "{{ range_id }}-SCCM-CLIENT"
     hostname: "{{ range_id }}-WS01"
-    template: win2025-server-x64-template
+    template: win11-23h2-x64-enterprise-template
     vlan: 10
     ip_last_octet: 43
     ram_gb: 4

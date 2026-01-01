@@ -1,7 +1,6 @@
-ludus:
   - vm_name: "{{ range_id }}-COMMANDO"
     hostname: "{{ range_id }}-COMMANDO"
-    template: win11-22h2-x64-template
+    template: win11-23h2-x64-enterprise-template
     vlan: 10
     ip_last_octet: 51
     ram_gb: 8

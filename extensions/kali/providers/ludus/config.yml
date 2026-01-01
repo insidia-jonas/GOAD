@@ -1,7 +1,6 @@
-ludus:
   - vm_name: "{{ range_id }}-KALI"
     hostname: "{{ range_id }}-KALI"
-    template: kali-template
+    template: kali-x64-desktop-template
     vlan: 10
     ip_last_octet: 50
     ram_gb: 4
