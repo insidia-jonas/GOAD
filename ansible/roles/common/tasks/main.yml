@@ -69,11 +69,13 @@
     Protocol: "TCP"
     Description: "Opens the listener port for RDP"
   when: ansible_distribution_version is version('10.0', '>=')
+  ignore_errors: yes
+  register: firewall_dsc_result
 
-- name: Firewall | Allow RDP through Firewall (legacy)
+- name: Firewall | Allow RDP through Firewall (legacy/fallback)
   win_shell: |
     netsh advfirewall firewall set rule group="Remote Desktop" new enable=yes
-  when: ansible_distribution_version is version('10.0', '<')
+  when: ansible_distribution_version is version('10.0', '<') or (firewall_dsc_result is defined and firewall_dsc_result.failed | default(false))
   ignore_errors: yes
 
 - name: Add a network static route
