@@ -184,7 +184,7 @@ domain
 [wazuh_agents_linux:children]
 linux_domain
 
-; sysmon installation - all windows machines except Server 2008 R2
+; sysmon installation - all windows machines
 ; usage : wazuh.yml
 [sysmon]
 dc01
@@ -192,6 +192,7 @@ dc02
 dc03
 srv02
 srv03
+srv04
 ws02
 
 ;stay empty until override

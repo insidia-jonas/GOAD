@@ -1,7 +1,10 @@
 ludus:
+  # NOTE: Windows Server 2025 templates are not available by default in Ludus
+  # Using Windows Server 2022 as the primary DC/server template
+  # To use Windows Server 2025, build custom template: ludus templates add -d win2025-server-x64
   - vm_name: "{{ range_id }}-GOAD-DC01"
     hostname: "{{ range_id }}-DC01"
-    template: win2025-server-x64-template
+    template: win2022-server-x64-template
     vlan: 10
     ip_last_octet: 10
     ram_gb: 4
@@ -10,7 +13,7 @@ ludus:
       sysprep: true
   - vm_name: "{{ range_id }}-GOAD-DC02"
     hostname: "{{ range_id }}-DC02"
-    template: win2025-server-x64-template
+    template: win2022-server-x64-template
     vlan: 10
     ip_last_octet: 11
     ram_gb: 4
@@ -28,10 +31,10 @@ ludus:
       sysprep: true
   - vm_name: "{{ range_id }}-GOAD-SRV02"
     hostname: "{{ range_id }}-SRV02"
-    template: win2025-server-x64-template
+    template: win2022-server-x64-template
     vlan: 10
     ip_last_octet: 22
-    ram_gb: 4
+    ram_gb: 6
     cpus: 2
     windows:
       sysprep: true
@@ -40,13 +43,16 @@ ludus:
     template: win2022-server-x64-template
     vlan: 10
     ip_last_octet: 23
-    ram_gb: 4
+    ram_gb: 5
     cpus: 2
     windows:
       sysprep: true
+  # NOTE: Windows Server 2008 R2 not available by default
+  # Using Windows Server 2019 as legacy server alternative
+  # To use 2008 R2, build custom template: ludus templates add -d win2008r2-server-x64
   - vm_name: "{{ range_id }}-GOAD-SRV04"
     hostname: "{{ range_id }}-SRV04"
-    template: win2008r2-server-x64-template
+    template: win2019-server-x64-template
     vlan: 10
     ip_last_octet: 24
     ram_gb: 2
