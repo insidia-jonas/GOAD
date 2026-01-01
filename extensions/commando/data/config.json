@@ -1,0 +1,14 @@
+{
+    "lab_extension" : {
+        "hosts" : {
+          "commando" : {
+              "hostname" : "COMMANDO",
+              "type" : "attacker",
+              "os": "windows",
+              "local_admin_password": "CommandoVM!",
+              "security": [""],
+              "security_vars": {}
+          }
+        }
+    }
+  }

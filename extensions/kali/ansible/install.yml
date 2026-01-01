@@ -1,0 +1,33 @@
+---
+# Kali Linux attack machine - no domain enrollment needed
+# This machine is for penetration testing purposes
+
+- name: "Read local config file"
+  hosts: kali
+  connection: local
+  vars_files:
+    - "../data/config.json"
+  tasks:
+    - name: Display Kali machine info
+      debug:
+        msg: "Kali attack machine ready at {{ ansible_host }}"
+
+- name: Setup Kali machine
+  hosts: kali
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Ensure common tools are installed
+      apt:
+        name:
+          - git
+          - curl
+          - wget
+          - vim
+          - tmux
+          - net-tools
+        state: present

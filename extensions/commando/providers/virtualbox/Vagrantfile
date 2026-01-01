@@ -1,0 +1,9 @@
+boxes.append(
+    { :name => "{{lab_name}}-COMMANDO",
+      :ip => "{{ip_range}}.51",
+      :box => "dvgamerr/windows11",
+      :os => "windows",
+      :cpus => 2,
+      :mem => 8000
+    }
+)

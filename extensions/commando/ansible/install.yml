@@ -1,0 +1,27 @@
+---
+# Commando VM Windows attack machine - no domain enrollment needed
+# This machine is for Windows-based penetration testing purposes
+
+- name: "Read local config file"
+  hosts: commando
+  connection: local
+  vars_files:
+    - "../data/config.json"
+  tasks:
+    - name: Display Commando VM machine info
+      debug:
+        msg: "Commando VM attack machine ready at {{ ansible_host }}"
+
+- name: Setup Commando VM machine
+  hosts: commando
+  tasks:
+    - name: Ensure WinRM is configured
+      win_ping:
+
+    - name: Display hostname
+      win_shell: hostname
+      register: hostname_output
+
+    - name: Show hostname
+      debug:
+        msg: "Commando VM hostname: {{ hostname_output.stdout }}"

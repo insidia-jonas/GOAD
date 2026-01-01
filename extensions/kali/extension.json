@@ -1,0 +1,16 @@
+{
+    "name": "kali",
+    "description": "Add a Kali Linux attack machine to the lab",
+    "machines": [
+        "kali"
+    ],
+    "compatibility": [
+        "GOAD",
+        "GOAD-Light",
+        "GOAD-Mini",
+        "NHA",
+        "SCCM",
+        "MINILAB"
+    ],
+    "impact": "none"
+}

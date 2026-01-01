@@ -23,15 +23,17 @@ variable "pm_full_clone" {
   default = "{{config.get_value('proxmox', 'pm_full_clone', 'false')}}"
 }
 
-# change this value with the id of your templates (win10 can be ignored if not used)
+# change this value with the id of your templates (win11 can be ignored if not used)
 variable "vm_template_id" {
   type = map(number)
 
   # set the ids according to your templates
   default = {
-      "WinServer2019_x64"  = {{config.get_value('proxmox_templates_id', 'winserver2019_x64', 0)}}
-      "WinServer2016_x64"  = {{config.get_value('proxmox_templates_id', 'WinServer2016_x64', 0)}}
-      "Windows10_22h2_x64" = {{config.get_value('proxmox_templates_id', 'windows10_22h2_x64', 0)}}
+      "WinServer2025_x64"  = {{config.get_value('proxmox_templates_id', 'winserver2025_x64', 0)}}
+      "WinServer2022_x64"  = {{config.get_value('proxmox_templates_id', 'WinServer2022_x64', 0)}}
+      "Windows11_x64"      = {{config.get_value('proxmox_templates_id', 'windows11_x64', 0)}}
+      "Kali_x64"           = {{config.get_value('proxmox_templates_id', 'kali_x64', 0)}}
+      "CommandoVM_x64"     = {{config.get_value('proxmox_templates_id', 'commandovm_x64', 0)}}
   }
 }
 

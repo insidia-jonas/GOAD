@@ -1,0 +1,14 @@
+{
+    "lab_extension" : {
+        "hosts" : {
+          "kali" : {
+              "hostname" : "kali",
+              "type" : "attacker",
+              "os": "linux",
+              "local_admin_password": "kali",
+              "security": [""],
+              "security_vars": {}
+          }
+        }
+    }
+  }

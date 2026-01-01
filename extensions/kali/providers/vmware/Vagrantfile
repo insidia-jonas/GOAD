@@ -1,0 +1,10 @@
+boxes.append(
+    { :name => "{{lab_name}}-KALI",
+      :ip => "{{ip_range}}.50",
+      :box => "kalilinux/rolling",
+      :os => "linux",
+      :cpus => 2,
+      :mem => 4000,
+      :forwarded_port => [ {:guest => 22, :host => 2250, :id => "ssh"} ]
+    }
+)

@@ -1,0 +1,8 @@
+[default]
+kali ansible_host={{ip_range}}.50  dict_key=kali ansible_connection=ssh ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+
+[extensions]
+kali
+
+[attack_machines]
+kali

@@ -1,0 +1,9 @@
+ludus:
+  - vm_name: "{{ range_id }}-KALI"
+    hostname: "{{ range_id }}-KALI"
+    template: kali-template
+    vlan: 10
+    ip_last_octet: 50
+    ram_gb: 4
+    cpus: 2
+    linux: true

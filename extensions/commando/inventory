@@ -1,0 +1,8 @@
+[default]
+commando ansible_host={{ip_range}}.51  dict_key=commando
+
+[extensions]
+commando
+
+[attack_machines]
+commando

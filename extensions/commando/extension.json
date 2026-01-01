@@ -1,0 +1,16 @@
+{
+    "name": "commando",
+    "description": "Add a Commando VM (Windows-based attack machine) to the lab",
+    "machines": [
+        "commando"
+    ],
+    "compatibility": [
+        "GOAD",
+        "GOAD-Light",
+        "GOAD-Mini",
+        "NHA",
+        "SCCM",
+        "MINILAB"
+    ],
+    "impact": "none"
+}
