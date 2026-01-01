@@ -43,9 +43,8 @@ ad_https_proxy=http://x.x.x.x:xxxx
 
 ; LAB SCENARIO CONFIGURATION -----------------------------
 
-; Wazuh EDR Server (Ubuntu/Debian)
+; Note: Host definitions are in provider-specific inventory files
 [default]
-wazuh ansible_host={{ip_range}}.51 ansible_connection=ssh ansible_ssh_common_args='-o StrictHostKeyChecking=no'
 
 ; computers inside domain (mandatory)
 ; usage : build.yml, ad-relations.yml, ad-servers.yml, vulnerabilities.yml

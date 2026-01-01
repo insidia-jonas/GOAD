@@ -15,3 +15,15 @@ srv02 ansible_host={{ip_range}}.22 dns_domain=dc02 dict_key=srv02
 ; ------------------------------------------------
 dc03 ansible_host={{ip_range}}.12 dns_domain=dc03 dict_key=dc03
 srv03 ansible_host={{ip_range}}.23 dns_domain=dc03 dict_key=srv03
+; ------------------------------------------------
+; legacy server (2012 R2)
+; ------------------------------------------------
+srv04 ansible_host={{ip_range}}.24 dns_domain=dc03 dict_key=srv04
+; ------------------------------------------------
+; workstation
+; ------------------------------------------------
+ws02 ansible_host={{ip_range}}.32 dns_domain=dc01 dict_key=ws02
+; ------------------------------------------------
+; wazuh EDR server (Linux)
+; ------------------------------------------------
+wazuh ansible_host={{ip_range}}.51 ansible_connection=ssh ansible_ssh_common_args='-o StrictHostKeyChecking=no'
