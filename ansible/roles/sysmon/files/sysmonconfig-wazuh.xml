@@ -1,0 +1,316 @@
+<!--
+  Sysmon Configuration for Wazuh EDR Integration
+  Optimized for MITRE ATT&CK Detection in GOAD Lab
+
+  Based on:
+  - SwiftOnSecurity/sysmon-config
+  - paolokappa/Sysmon_Config_for_Wazuh
+  - MITRE ATT&CK Framework mappings
+
+  Schema version: 4.90 (Sysmon v15+)
+-->
+<Sysmon schemaversion="4.90">
+  <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
+  <CheckRevocation/>
+  <DnsLookup>False</DnsLookup>
+
+  <EventFiltering>
+
+    <!-- Event ID 1: Process Creation - Critical for attack detection -->
+    <RuleGroup name="ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <!-- Suspicious process names -->
+        <Image condition="contains">mimikatz</Image>
+        <Image condition="contains">psexec</Image>
+        <Image condition="contains">procdump</Image>
+        <Image condition="contains">rubeus</Image>
+        <Image condition="contains">sharphound</Image>
+        <Image condition="contains">bloodhound</Image>
+        <Image condition="contains">covenant</Image>
+        <Image condition="contains">empire</Image>
+        <Image condition="contains">powersploit</Image>
+        <Image condition="contains">lazagne</Image>
+        <Image condition="contains">secretsdump</Image>
+        <Image condition="contains">impacket</Image>
+
+        <!-- LOLBAS - Living off the Land Binaries -->
+        <Image condition="end with">certutil.exe</Image>
+        <Image condition="end with">bitsadmin.exe</Image>
+        <Image condition="end with">mshta.exe</Image>
+        <Image condition="end with">wscript.exe</Image>
+        <Image condition="end with">cscript.exe</Image>
+        <Image condition="end with">regsvr32.exe</Image>
+        <Image condition="end with">rundll32.exe</Image>
+        <Image condition="end with">msiexec.exe</Image>
+        <Image condition="end with">installutil.exe</Image>
+        <Image condition="end with">regasm.exe</Image>
+        <Image condition="end with">regsvcs.exe</Image>
+        <Image condition="end with">msbuild.exe</Image>
+        <Image condition="end with">cmstp.exe</Image>
+        <Image condition="end with">wmic.exe</Image>
+        <Image condition="end with">forfiles.exe</Image>
+        <Image condition="end with">pcalua.exe</Image>
+        <Image condition="end with">bash.exe</Image>
+        <Image condition="end with">msconfig.exe</Image>
+
+        <!-- PowerShell and scripting -->
+        <Image condition="end with">powershell.exe</Image>
+        <Image condition="end with">pwsh.exe</Image>
+        <Image condition="end with">cmd.exe</Image>
+
+        <!-- Credential access tools -->
+        <Image condition="end with">lsass.exe</Image>
+        <Image condition="end with">vssadmin.exe</Image>
+        <Image condition="end with">ntdsutil.exe</Image>
+        <Image condition="end with">dsquery.exe</Image>
+        <Image condition="end with">dsget.exe</Image>
+
+        <!-- Network reconnaissance -->
+        <Image condition="end with">net.exe</Image>
+        <Image condition="end with">net1.exe</Image>
+        <Image condition="end with">netstat.exe</Image>
+        <Image condition="end with">nslookup.exe</Image>
+        <Image condition="end with">ping.exe</Image>
+        <Image condition="end with">ipconfig.exe</Image>
+        <Image condition="end with">arp.exe</Image>
+        <Image condition="end with">route.exe</Image>
+        <Image condition="end with">tracert.exe</Image>
+        <Image condition="end with">systeminfo.exe</Image>
+        <Image condition="end with">whoami.exe</Image>
+        <Image condition="end with">hostname.exe</Image>
+        <Image condition="end with">tasklist.exe</Image>
+        <Image condition="end with">qprocess.exe</Image>
+        <Image condition="end with">query.exe</Image>
+        <Image condition="end with">nltest.exe</Image>
+
+        <!-- Scheduled tasks and persistence -->
+        <Image condition="end with">schtasks.exe</Image>
+        <Image condition="end with">at.exe</Image>
+        <Image condition="end with">reg.exe</Image>
+        <Image condition="end with">sc.exe</Image>
+
+        <!-- Remote access and lateral movement -->
+        <Image condition="end with">mstsc.exe</Image>
+        <Image condition="end with">tscon.exe</Image>
+
+        <!-- Suspicious command lines -->
+        <CommandLine condition="contains">-enc</CommandLine>
+        <CommandLine condition="contains">-EncodedCommand</CommandLine>
+        <CommandLine condition="contains">-nop</CommandLine>
+        <CommandLine condition="contains">-noprofile</CommandLine>
+        <CommandLine condition="contains">-ep bypass</CommandLine>
+        <CommandLine condition="contains">-ExecutionPolicy Bypass</CommandLine>
+        <CommandLine condition="contains">hidden</CommandLine>
+        <CommandLine condition="contains">downloadstring</CommandLine>
+        <CommandLine condition="contains">downloadfile</CommandLine>
+        <CommandLine condition="contains">invoke-expression</CommandLine>
+        <CommandLine condition="contains">iex</CommandLine>
+        <CommandLine condition="contains">invoke-webrequest</CommandLine>
+        <CommandLine condition="contains">invoke-command</CommandLine>
+        <CommandLine condition="contains">net user</CommandLine>
+        <CommandLine condition="contains">net localgroup</CommandLine>
+        <CommandLine condition="contains">net group</CommandLine>
+        <CommandLine condition="contains">sekurlsa</CommandLine>
+        <CommandLine condition="contains">lsadump</CommandLine>
+        <CommandLine condition="contains">dcsync</CommandLine>
+        <CommandLine condition="contains">kerberos::</CommandLine>
+        <CommandLine condition="contains">privilege::debug</CommandLine>
+        <CommandLine condition="contains">token::elevate</CommandLine>
+        <CommandLine condition="contains">Add-DomainObjectAcl</CommandLine>
+        <CommandLine condition="contains">Get-DomainUser</CommandLine>
+        <CommandLine condition="contains">Get-DomainGroup</CommandLine>
+        <CommandLine condition="contains">Get-DomainComputer</CommandLine>
+        <CommandLine condition="contains">Add-MachineAccount</CommandLine>
+        <CommandLine condition="contains">Add-ObjectAcl</CommandLine>
+        <CommandLine condition="contains">PassTheHash</CommandLine>
+        <CommandLine condition="contains">OverPassTheHash</CommandLine>
+        <CommandLine condition="contains">Golden</CommandLine>
+        <CommandLine condition="contains">Silver</CommandLine>
+        <CommandLine condition="contains">Skeleton</CommandLine>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- Event ID 3: Network Connection - Detect C2 and lateral movement -->
+    <RuleGroup name="NetworkConnect" groupRelation="or">
+      <NetworkConnect onmatch="include">
+        <Image condition="end with">powershell.exe</Image>
+        <Image condition="end with">pwsh.exe</Image>
+        <Image condition="end with">cmd.exe</Image>
+        <Image condition="end with">wscript.exe</Image>
+        <Image condition="end with">cscript.exe</Image>
+        <Image condition="end with">mshta.exe</Image>
+        <Image condition="end with">rundll32.exe</Image>
+        <Image condition="end with">regsvr32.exe</Image>
+        <Image condition="end with">certutil.exe</Image>
+        <Image condition="end with">bitsadmin.exe</Image>
+        <Image condition="end with">msiexec.exe</Image>
+        <!-- Common C2 ports -->
+        <DestinationPort condition="is">4444</DestinationPort>
+        <DestinationPort condition="is">5555</DestinationPort>
+        <DestinationPort condition="is">6666</DestinationPort>
+        <DestinationPort condition="is">8080</DestinationPort>
+        <DestinationPort condition="is">8443</DestinationPort>
+        <DestinationPort condition="is">1337</DestinationPort>
+        <DestinationPort condition="is">31337</DestinationPort>
+      </NetworkConnect>
+    </RuleGroup>
+
+    <!-- Event ID 7: Image Loaded - Detect DLL injection and side-loading -->
+    <RuleGroup name="ImageLoad" groupRelation="or">
+      <ImageLoad onmatch="include">
+        <ImageLoaded condition="contains">mimikatz</ImageLoaded>
+        <ImageLoaded condition="contains">clrjit.dll</ImageLoaded>
+        <ImageLoaded condition="end with">amsi.dll</ImageLoaded>
+        <ImageLoaded condition="end with">wldp.dll</ImageLoaded>
+        <Signed condition="is">false</Signed>
+        <SignatureStatus condition="is">Invalid</SignatureStatus>
+      </ImageLoad>
+    </RuleGroup>
+
+    <!-- Event ID 8: CreateRemoteThread - Detect process injection -->
+    <RuleGroup name="CreateRemoteThread" groupRelation="or">
+      <CreateRemoteThread onmatch="include">
+        <TargetImage condition="end with">lsass.exe</TargetImage>
+        <SourceImage condition="end with">powershell.exe</SourceImage>
+        <SourceImage condition="end with">cmd.exe</SourceImage>
+        <SourceImage condition="end with">rundll32.exe</SourceImage>
+        <SourceImage condition="end with">regsvr32.exe</SourceImage>
+      </CreateRemoteThread>
+    </RuleGroup>
+
+    <!-- Event ID 10: ProcessAccess - Critical for credential dumping detection -->
+    <RuleGroup name="ProcessAccess" groupRelation="or">
+      <ProcessAccess onmatch="include">
+        <TargetImage condition="end with">lsass.exe</TargetImage>
+        <GrantedAccess condition="is">0x1010</GrantedAccess>
+        <GrantedAccess condition="is">0x1038</GrantedAccess>
+        <GrantedAccess condition="is">0x1410</GrantedAccess>
+        <GrantedAccess condition="is">0x1438</GrantedAccess>
+        <GrantedAccess condition="is">0x143a</GrantedAccess>
+        <GrantedAccess condition="is">0x1fffff</GrantedAccess>
+      </ProcessAccess>
+    </RuleGroup>
+
+    <!-- Event ID 11: FileCreate - Detect malicious file drops -->
+    <RuleGroup name="FileCreate" groupRelation="or">
+      <FileCreate onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.cmd</TargetFilename>
+        <TargetFilename condition="end with">.vbs</TargetFilename>
+        <TargetFilename condition="end with">.js</TargetFilename>
+        <TargetFilename condition="end with">.hta</TargetFilename>
+        <TargetFilename condition="end with">.scr</TargetFilename>
+        <TargetFilename condition="contains">\Startup\</TargetFilename>
+        <TargetFilename condition="contains">\Start Menu\</TargetFilename>
+        <TargetFilename condition="contains">AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!-- Event ID 12,13,14: Registry Events - Detect persistence mechanisms -->
+    <RuleGroup name="RegistryEvent" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">CurrentVersion\Run</TargetObject>
+        <TargetObject condition="contains">CurrentVersion\RunOnce</TargetObject>
+        <TargetObject condition="contains">CurrentVersion\RunServices</TargetObject>
+        <TargetObject condition="contains">CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <TargetObject condition="contains">Group Policy\Scripts</TargetObject>
+        <TargetObject condition="contains">Windows\CurrentVersion\Explorer\Shell Folders</TargetObject>
+        <TargetObject condition="contains">CurrentVersion\Explorer\User Shell Folders</TargetObject>
+        <TargetObject condition="contains">Services\</TargetObject>
+        <TargetObject condition="contains">Control\SecurityProviders\SecurityProviders</TargetObject>
+        <TargetObject condition="contains">Control\Lsa\Authentication Packages</TargetObject>
+        <TargetObject condition="contains">Control\Lsa\Security Packages</TargetObject>
+        <TargetObject condition="contains">Control\Lsa\OSConfig\Security Packages</TargetObject>
+        <TargetObject condition="contains">ControlSet\Control\Print\Monitors</TargetObject>
+        <TargetObject condition="contains">CurrentControlSet\Control\NetworkProvider\Order</TargetObject>
+        <TargetObject condition="contains">WOW6432Node</TargetObject>
+        <TargetObject condition="contains">Image File Execution Options</TargetObject>
+        <TargetObject condition="contains">SilentProcessExit</TargetObject>
+        <TargetObject condition="contains">\InprocServer32\(Default)</TargetObject>
+        <TargetObject condition="contains">\Environment\UserInitMprLogonScript</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- Event ID 15: FileCreateStreamHash - Alternate Data Streams -->
+    <RuleGroup name="FileCreateStreamHash" groupRelation="or">
+      <FileCreateStreamHash onmatch="include">
+        <TargetFilename condition="contains">Zone.Identifier</TargetFilename>
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+      </FileCreateStreamHash>
+    </RuleGroup>
+
+    <!-- Event ID 17,18: PipeEvent - Named pipe detection for lateral movement -->
+    <RuleGroup name="PipeEvent" groupRelation="or">
+      <PipeEvent onmatch="include">
+        <PipeName condition="contains">psexec</PipeName>
+        <PipeName condition="contains">paexec</PipeName>
+        <PipeName condition="contains">csexec</PipeName>
+        <PipeName condition="contains">svcctl</PipeName>
+        <PipeName condition="contains">srvsvc</PipeName>
+        <PipeName condition="contains">samr</PipeName>
+        <PipeName condition="contains">lsarpc</PipeName>
+        <PipeName condition="contains">netlogon</PipeName>
+        <PipeName condition="contains">winreg</PipeName>
+        <PipeName condition="contains">atsvc</PipeName>
+        <PipeName condition="contains">efsrpc</PipeName>
+        <PipeName condition="contains">spoolss</PipeName>
+        <PipeName condition="contains">Winsock2\CatalogChangeListener</PipeName>
+      </PipeEvent>
+    </RuleGroup>
+
+    <!-- Event ID 19,20,21: WmiEvent - WMI persistence -->
+    <RuleGroup name="WmiEvent" groupRelation="or">
+      <WmiEvent onmatch="include">
+        <Operation condition="is">Created</Operation>
+      </WmiEvent>
+    </RuleGroup>
+
+    <!-- Event ID 22: DNSQuery - Track DNS for C2 detection -->
+    <RuleGroup name="DnsQuery" groupRelation="or">
+      <DnsQuery onmatch="include">
+        <QueryName condition="end with">.onion</QueryName>
+        <QueryName condition="end with">.i2p</QueryName>
+        <QueryName condition="contains">pastebin</QueryName>
+        <QueryName condition="contains">githubusercontent</QueryName>
+        <QueryName condition="contains">ngrok</QueryName>
+        <QueryName condition="contains">duckdns</QueryName>
+        <QueryName condition="contains">no-ip</QueryName>
+        <QueryName condition="contains">ddns</QueryName>
+      </DnsQuery>
+    </RuleGroup>
+
+    <!-- Event ID 23: FileDelete - Track file deletions -->
+    <RuleGroup name="FileDelete" groupRelation="or">
+      <FileDelete onmatch="include">
+        <TargetFilename condition="contains">\Windows\System32\</TargetFilename>
+        <TargetFilename condition="contains">\Windows\SysWOW64\</TargetFilename>
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.evtx</TargetFilename>
+        <TargetFilename condition="contains">Prefetch</TargetFilename>
+      </FileDelete>
+    </RuleGroup>
+
+    <!-- Event ID 25: ProcessTampering - Detect process hollowing -->
+    <RuleGroup name="ProcessTampering" groupRelation="or">
+      <ProcessTampering onmatch="include">
+        <Type condition="is">Image is replaced</Type>
+        <Type condition="is">Image is locked for access</Type>
+      </ProcessTampering>
+    </RuleGroup>
+
+    <!-- Event ID 26: FileDeleteDetected -->
+    <RuleGroup name="FileDeleteDetected" groupRelation="or">
+      <FileDeleteDetected onmatch="include">
+        <TargetFilename condition="end with">.evtx</TargetFilename>
+        <TargetFilename condition="contains">\Prefetch\</TargetFilename>
+      </FileDeleteDetected>
+    </RuleGroup>
+
+  </EventFiltering>
+</Sysmon>

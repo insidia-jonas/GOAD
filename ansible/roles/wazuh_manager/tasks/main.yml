@@ -49,12 +49,56 @@
   shell: sudo bash /opt/wazuh/wazuh_socfortress_rules.sh
   when: not ossec_folder.stat.exists
 
+# ============================================
+# Install MITRE ATT&CK and AD Attack Rules
+# ============================================
+
+- name: Copy MITRE ATT&CK Sysmon rules
+  copy:
+    src: rules/mitre_sysmon_rules.xml
+    dest: /var/ossec/etc/rules/mitre_sysmon_rules.xml
+    owner: wazuh
+    group: wazuh
+    mode: '0660'
+  notify: Restart Wazuh Manager
+
+- name: Copy Active Directory attack rules
+  copy:
+    src: rules/ad_attack_rules.xml
+    dest: /var/ossec/etc/rules/ad_attack_rules.xml
+    owner: wazuh
+    group: wazuh
+    mode: '0660'
+  notify: Restart Wazuh Manager
+
+# Enable Sysmon event collection in ossec.conf
+- name: Check if Sysmon localfile config exists
+  shell: grep -q "Microsoft-Windows-Sysmon" /var/ossec/etc/ossec.conf
+  register: sysmon_config_check
+  ignore_errors: yes
+  changed_when: false
+
+- name: Add Sysmon event collection to ossec.conf
+  blockinfile:
+    path: /var/ossec/etc/ossec.conf
+    insertbefore: "</ossec_config>"
+    marker: "<!-- {mark} ANSIBLE MANAGED SYSMON CONFIG -->"
+    block: |
+      <localfile>
+        <location>Microsoft-Windows-Sysmon/Operational</location>
+        <log_format>eventchannel</log_format>
+      </localfile>
+  when: sysmon_config_check.rc != 0
+  notify: Restart Wazuh Manager
+
 - name: Extract username and password
   shell: "grep -E 'User:|Password:' /opt/wazuh/wazuh-install-output.txt | awk '{print $NF}'"
   register: access_info
+  ignore_errors: yes
 
 - name: Display username and password
   debug:
     msg:
-      - "Username: {{ access_info.stdout_lines[0] }}"
-      - "Password: {{ access_info.stdout_lines[1] }}"
+      - "Username: {{ access_info.stdout_lines[0] | default('admin') }}"
+      - "Password: {{ access_info.stdout_lines[1] | default('Check /opt/wazuh/wazuh-install-output.txt') }}"
+  when: access_info.stdout_lines | length >= 2

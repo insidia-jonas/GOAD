@@ -1,13 +1,19 @@
 ---
 # Wazuh EDR Installation Playbook
-# Installs Wazuh Manager on Linux server and Wazuh Agents on all Windows machines
-# Credits to SOCFortress and Mayfly277
+# Installs Wazuh Manager, Sysmon, and Wazuh Agents
+# Includes MITRE ATT&CK and Sigma detection rules
+# Credits to SOCFortress, Mayfly277, and MITRE ATT&CK community
 
-- name: Install and configure Wazuh Manager
+- name: Install and configure Wazuh Manager with MITRE ATT&CK rules
   hosts: wazuh_server
   become: yes
   roles:
     - { role: 'wazuh_manager', tags: 'wazuh_manager' }
+
+- name: Install Sysmon on Windows machines for enhanced logging
+  hosts: sysmon
+  roles:
+    - { role: 'sysmon', tags: 'sysmon' }
 
 - name: Install Wazuh Agent on Windows machines
   hosts: wazuh_agents
@@ -15,3 +21,28 @@
     - { role: 'wazuh_agent', tags: 'wazuh_agent' }
   vars:
     wazuh_manager_host: "{{ hostvars['wazuh']['ansible_host'] }}"
+
+- name: Install Sigma rules on Wazuh Manager (optional - requires manual run)
+  hosts: wazuh_server
+  become: yes
+  tasks:
+    - name: Copy Sigma converter script
+      copy:
+        src: "{{ playbook_dir }}/roles/wazuh_manager/files/sigma_to_wazuh.sh"
+        dest: /opt/wazuh/sigma_to_wazuh.sh
+        mode: '0755'
+      tags:
+        - sigma
+        - never
+
+    - name: Display Sigma installation instructions
+      debug:
+        msg: |
+          Sigma rules can be installed manually by running:
+          sudo bash /opt/wazuh/sigma_to_wazuh.sh
+
+          This will download and convert Sigma rules to Wazuh format.
+          Note: This requires internet access and may take a while.
+      tags:
+        - sigma
+        - never

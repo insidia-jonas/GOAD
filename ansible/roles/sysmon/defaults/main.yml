@@ -1,0 +1,10 @@
+# Sysmon installation defaults
+sysmon_install_location: "c:\\sysmon"
+sysmon_download_file: "Sysmon"
+file_ext: ".zip"
+
+# Sysmon download URL (latest version)
+sysmon_download_url: "https://download.sysinternals.com/files/Sysmon.zip"
+
+# Sysmon configuration file
+sysmon_config_file: "sysmonconfig-wazuh.xml"

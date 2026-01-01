@@ -1,0 +1,322 @@
+<!--
+  Active Directory Attack Detection Rules for Wazuh
+  Based on Windows Security Events and Common AD Attack Patterns
+
+  Optimized for GOAD Active Directory Lab
+-->
+
+<group name="windows,active_directory,mitre,">
+
+  <!-- ============================================= -->
+  <!-- Kerberos Attack Detection (Event IDs 4768-4771) -->
+  <!-- ============================================= -->
+
+  <!-- T1558.003 - Kerberoasting Detection via Event 4769 -->
+  <rule id="100700" level="12">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4769$</field>
+    <field name="win.eventdata.ticketEncryptionType" type="pcre2">^0x17$</field>
+    <field name="win.eventdata.serviceName" type="pcre2">^(?!krbtgt)</field>
+    <mitre>
+      <id>T1558.003</id>
+    </mitre>
+    <description>MITRE ATT&CK T1558.003: Possible Kerberoasting - RC4 TGS ticket requested for service account</description>
+    <group>attack,credential_access,kerberoasting,</group>
+  </rule>
+
+  <!-- T1558.004 - AS-REP Roasting Detection via Event 4768 -->
+  <rule id="100701" level="12">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4768$</field>
+    <field name="win.eventdata.preAuthType">^0$</field>
+    <mitre>
+      <id>T1558.004</id>
+    </mitre>
+    <description>MITRE ATT&CK T1558.004: Possible AS-REP Roasting - Kerberos pre-auth not required</description>
+    <group>attack,credential_access,asreproast,</group>
+  </rule>
+
+  <!-- T1558 - Overpass-the-Hash Detection -->
+  <rule id="100702" level="12">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4768$</field>
+    <field name="win.eventdata.ticketEncryptionType" type="pcre2">^0x17$</field>
+    <mitre>
+      <id>T1550.002</id>
+    </mitre>
+    <description>MITRE ATT&CK T1550.002: Possible Overpass-the-Hash - RC4 AS ticket request</description>
+    <group>attack,credential_access,lateral_movement,</group>
+  </rule>
+
+  <!-- T1558.001 - Golden Ticket Detection (anomalous TGT usage) -->
+  <rule id="100703" level="14">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4769$</field>
+    <field name="win.eventdata.serviceName">krbtgt</field>
+    <field name="win.eventdata.ticketOptions" type="pcre2">0x40810000</field>
+    <mitre>
+      <id>T1558.001</id>
+    </mitre>
+    <description>MITRE ATT&CK T1558.001: Possible Golden Ticket usage detected</description>
+    <group>attack,credential_access,persistence,</group>
+  </rule>
+
+  <!-- ============================================= -->
+  <!-- DCSync Attack Detection -->
+  <!-- ============================================= -->
+
+  <!-- T1003.006 - DCSync via Directory Service Access (4662) -->
+  <rule id="100710" level="15">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4662$</field>
+    <field name="win.eventdata.properties" type="pcre2">(1131f6aa-9c07-11d1-f79f-00c04fc2dcd2|1131f6ad-9c07-11d1-f79f-00c04fc2dcd2|89e95b76-444d-4c62-991a-0facbeda640c)</field>
+    <mitre>
+      <id>T1003.006</id>
+    </mitre>
+    <description>MITRE ATT&CK T1003.006: DCSync attack detected - Replication rights accessed</description>
+    <group>attack,credential_access,dcsync,</group>
+  </rule>
+
+  <!-- ============================================= -->
+  <!-- Privilege Escalation Detection -->
+  <!-- ============================================= -->
+
+  <!-- T1134 - Access Token Manipulation (4624 type 9) -->
+  <rule id="100720" level="10">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4624$</field>
+    <field name="win.eventdata.logonType">^9$</field>
+    <mitre>
+      <id>T1134</id>
+    </mitre>
+    <description>MITRE ATT&CK T1134: NewCredentials logon - possible token manipulation</description>
+    <group>attack,privilege_escalation,</group>
+  </rule>
+
+  <!-- T1078 - Sensitive Group Membership Change (4728, 4732, 4756) -->
+  <rule id="100721" level="14">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID" type="pcre2">^(4728|4732|4756)$</field>
+    <field name="win.eventdata.targetUserName" type="pcre2">(?i)(Domain Admins|Enterprise Admins|Schema Admins|Administrators|Account Operators|Backup Operators)</field>
+    <mitre>
+      <id>T1078.002</id>
+      <id>T1098</id>
+    </mitre>
+    <description>MITRE ATT&CK T1078/T1098: User added to privileged group</description>
+    <group>attack,privilege_escalation,persistence,</group>
+  </rule>
+
+  <!-- ============================================= -->
+  <!-- Lateral Movement Detection -->
+  <!-- ============================================= -->
+
+  <!-- T1021.001 - Remote Desktop (Type 10 Logon) -->
+  <rule id="100730" level="8">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4624$</field>
+    <field name="win.eventdata.logonType">^10$</field>
+    <mitre>
+      <id>T1021.001</id>
+    </mitre>
+    <description>MITRE ATT&CK T1021.001: Remote Desktop logon detected</description>
+    <group>attack,lateral_movement,</group>
+  </rule>
+
+  <!-- T1021.002 - SMB/Admin Share Access (Type 3 Logon) -->
+  <rule id="100731" level="6">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4624$</field>
+    <field name="win.eventdata.logonType">^3$</field>
+    <mitre>
+      <id>T1021.002</id>
+    </mitre>
+    <description>MITRE ATT&CK T1021.002: Network logon (SMB/share access) detected</description>
+    <group>attack,lateral_movement,</group>
+  </rule>
+
+  <!-- T1021.003 - DCOM Execution (Event 4688 with dllhost) -->
+  <rule id="100732" level="10">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)dllhost\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">\/Processid:\{</field>
+    <mitre>
+      <id>T1021.003</id>
+    </mitre>
+    <description>MITRE ATT&CK T1021.003: DCOM execution detected</description>
+    <group>attack,lateral_movement,</group>
+  </rule>
+
+  <!-- T1021.006 - WinRM Execution -->
+  <rule id="100733" level="10">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)wsmprovhost\.exe$</field>
+    <mitre>
+      <id>T1021.006</id>
+    </mitre>
+    <description>MITRE ATT&CK T1021.006: Windows Remote Management (WinRM) execution detected</description>
+    <group>attack,lateral_movement,</group>
+  </rule>
+
+  <!-- ============================================= -->
+  <!-- Persistence Detection -->
+  <!-- ============================================= -->
+
+  <!-- T1136.001 - Local Account Creation -->
+  <rule id="100740" level="10">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4720$</field>
+    <mitre>
+      <id>T1136.001</id>
+    </mitre>
+    <description>MITRE ATT&CK T1136.001: Local user account created</description>
+    <group>attack,persistence,</group>
+  </rule>
+
+  <!-- T1136.002 - Domain Account Creation -->
+  <rule id="100741" level="10">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4720$</field>
+    <field name="win.eventdata.targetDomainName" type="pcre2">^(?!BUILTIN|NT AUTHORITY)</field>
+    <mitre>
+      <id>T1136.002</id>
+    </mitre>
+    <description>MITRE ATT&CK T1136.002: Domain user account created</description>
+    <group>attack,persistence,</group>
+  </rule>
+
+  <!-- ============================================= -->
+  <!-- Defense Evasion Detection -->
+  <!-- ============================================= -->
+
+  <!-- T1070.001 - Security Event Log Cleared -->
+  <rule id="100750" level="15">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^1102$</field>
+    <mitre>
+      <id>T1070.001</id>
+    </mitre>
+    <description>MITRE ATT&CK T1070.001: Security event log was cleared</description>
+    <group>attack,defense_evasion,</group>
+  </rule>
+
+  <!-- T1562.002 - Windows Firewall Disabled -->
+  <rule id="100751" level="12">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)netsh.*firewall.*off|netsh.*advfirewall.*off</field>
+    <mitre>
+      <id>T1562.004</id>
+    </mitre>
+    <description>MITRE ATT&CK T1562.004: Windows Firewall disabled via netsh</description>
+    <group>attack,defense_evasion,</group>
+  </rule>
+
+  <!-- T1562.001 - Defender Disabled -->
+  <rule id="100752" level="14">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(Set-MpPreference.*-DisableRealtimeMonitoring.*\$true|sc.*stop.*windefend|net.*stop.*windefend)</field>
+    <mitre>
+      <id>T1562.001</id>
+    </mitre>
+    <description>MITRE ATT&CK T1562.001: Windows Defender disabled</description>
+    <group>attack,defense_evasion,</group>
+  </rule>
+
+  <!-- ============================================= -->
+  <!-- ADCS Attack Detection -->
+  <!-- ============================================= -->
+
+  <!-- T1649 - ESC1 Certificate Template Abuse -->
+  <rule id="100760" level="12">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4886$</field>
+    <mitre>
+      <id>T1649</id>
+    </mitre>
+    <description>MITRE ATT&CK T1649: Certificate request submitted to CA - check for ESC vulnerabilities</description>
+    <group>attack,credential_access,adcs,</group>
+  </rule>
+
+  <!-- T1649 - ESC8 NTLM Relay to ADCS (HTTP enrollment) -->
+  <rule id="100761" level="14">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4887$</field>
+    <field name="win.eventdata.requestType" type="pcre2">(?i)machine</field>
+    <mitre>
+      <id>T1649</id>
+      <id>T1557</id>
+    </mitre>
+    <description>MITRE ATT&CK T1649: Machine certificate issued - possible ESC8 NTLM relay</description>
+    <group>attack,credential_access,adcs,</group>
+  </rule>
+
+  <!-- ============================================= -->
+  <!-- Coercion Attack Detection -->
+  <!-- ============================================= -->
+
+  <!-- T1187 - PetitPotam/PrinterBug/Coercion Attacks -->
+  <rule id="100770" level="10">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4624$</field>
+    <field name="win.eventdata.logonType">^3$</field>
+    <field name="win.eventdata.authenticationPackageName">^NTLM$</field>
+    <field name="win.eventdata.targetUserName" type="pcre2">\$$</field>
+    <mitre>
+      <id>T1187</id>
+      <id>T1557.001</id>
+    </mitre>
+    <description>MITRE ATT&CK T1187: Machine account NTLM authentication - possible coercion attack</description>
+    <group>attack,credential_access,coercion,</group>
+  </rule>
+
+  <!-- ============================================= -->
+  <!-- Shadow Credentials Attack Detection -->
+  <!-- ============================================= -->
+
+  <!-- T1556 - Shadow Credentials (msDS-KeyCredentialLink modification) -->
+  <rule id="100780" level="14">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^5136$</field>
+    <field name="win.eventdata.attributeLDAPDisplayName">msDS-KeyCredentialLink</field>
+    <mitre>
+      <id>T1556</id>
+      <id>T1098</id>
+    </mitre>
+    <description>MITRE ATT&CK T1556: Shadow Credentials attack - msDS-KeyCredentialLink modified</description>
+    <group>attack,persistence,credential_access,</group>
+  </rule>
+
+  <!-- ============================================= -->
+  <!-- Pass-the-Hash/Ticket Detection -->
+  <!-- ============================================= -->
+
+  <!-- T1550.002 - Pass-the-Hash -->
+  <rule id="100790" level="12">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4624$</field>
+    <field name="win.eventdata.logonType">^9$</field>
+    <field name="win.eventdata.logonProcessName">seclogo</field>
+    <mitre>
+      <id>T1550.002</id>
+    </mitre>
+    <description>MITRE ATT&CK T1550.002: Possible Pass-the-Hash detected</description>
+    <group>attack,lateral_movement,</group>
+  </rule>
+
+  <!-- T1550.003 - Pass-the-Ticket -->
+  <rule id="100791" level="12">
+    <if_sid>60109</if_sid>
+    <field name="win.system.eventID">^4768$</field>
+    <field name="win.eventdata.status">^0x0$</field>
+    <field name="win.eventdata.ipAddress" type="pcre2">^::1$</field>
+    <mitre>
+      <id>T1550.003</id>
+    </mitre>
+    <description>MITRE ATT&CK T1550.003: Possible Pass-the-Ticket - TGT from localhost</description>
+    <group>attack,lateral_movement,</group>
+  </rule>
+
+</group>
