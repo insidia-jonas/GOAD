@@ -16,8 +16,16 @@
           $RemoteAdmin,
 
           [String]
-          $RemoteAdminPassword
+          $RemoteAdminPassword,
+
+          [String]
+          $LocalAdmin,
+
+          [String]
+          $LocalAdminPassword
       )
+      # Use explicit credentials instead of become
+      $localCred = New-Object System.Management.Automation.PSCredential($LocalAdmin, (ConvertTo-SecureString $LocalAdminPassword -AsPlainText -Force))
       $localforest=[System.DirectoryServices.ActiveDirectory.Forest]::getCurrentForest()
       try {
         $localForest.GetTrustRelationship($RemoteForest)
@@ -33,12 +41,8 @@
       RemoteForest: "{{remote_forest}}"
       RemoteAdmin: "{{remote_admin}}"
       RemoteAdminPassword: "{{remote_admin_password}}"
-  vars:
-    ansible_become: yes
-    ansible_become_method: runas
-    ansible_become_user: "{{domain_username}}"
-    ansible_become_password: "{{domain_password}}"
-    ansible_become_flags: logon_type=new_credentials logon_flags=netcredentials_only
+      LocalAdmin: "{{domain_username}}"
+      LocalAdminPassword: "{{domain_password}}"
   register:
     trust_result
 
@@ -60,10 +64,4 @@
   win_shell: |
     $obj = Get-CimInstance -Class Microsoft_DomainTrustStatus -Namespace root\microsoftactivedirectory
     Write-Output -InputObject $obj
-  vars:
-    ansible_become: yes
-    ansible_become_method: runas
-    domain_name: "{{domain}}"
-    ansible_become_user: "{{domain_username}}"
-    ansible_become_password: "{{domain_password}}"
-    ansible_become_flags: logon_type=new_credentials logon_flags=netcredentials_only
+  ignore_errors: yes
