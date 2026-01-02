@@ -3,54 +3,25 @@
     ipconfig /flushdns
     ipconfig /renew
 
-# source : https://social.technet.microsoft.com/wiki/contents/articles/11911.active-directory-powershell-how-to-create-forest-trust.aspx
-- name: Add trusts between domain
-  ansible.windows.win_powershell:
-    script: |
-      [CmdletBinding()]
-      param (
-          [String]$RemoteForest,
-          [String]$RemoteAdmin,
-          [String]$RemoteAdminPassword,
-          [String]$LocalAdmin,
-          [String]$LocalAdminPassword
-      )
+# Use netdom.exe to create forest trust - avoids PowerShell remoting crash on Server 2022
+- name: Check if trust already exists
+  win_shell: |
+    $trust = Get-ADTrust -Filter "Target -eq '{{remote_forest}}'" -ErrorAction SilentlyContinue
+    if ($trust) { "EXISTS" } else { "NOTEXISTS" }
+  register: trust_check
+  changed_when: false
 
-      # Create credential for local domain admin
-      $localCred = New-Object System.Management.Automation.PSCredential($LocalAdmin, (ConvertTo-SecureString $LocalAdminPassword -AsPlainText -Force))
-
-      # Run the trust creation in the context of domain admin using Invoke-Command
-      $result = Invoke-Command -ComputerName localhost -Credential $localCred -ScriptBlock {
-        param($RemoteForest, $RemoteAdmin, $RemoteAdminPassword)
-
-        $localforest = [System.DirectoryServices.ActiveDirectory.Forest]::getCurrentForest()
-        try {
-          $localForest.GetTrustRelationship($RemoteForest)
-          return @{Changed = $false; Message = "Trust already exists"}
-        } catch [System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException] {
-          $remoteContext = New-Object -TypeName "System.DirectoryServices.ActiveDirectory.DirectoryContext" -ArgumentList @("Forest", $RemoteForest, $RemoteAdmin, $RemoteAdminPassword)
-          $distantForest = [System.DirectoryServices.ActiveDirectory.Forest]::getForest($remoteContext)
-          $localForest.CreateTrustRelationship($distantForest, "Bidirectional")
-          return @{Changed = $true; Message = "Trust created"}
-        }
-      } -ArgumentList $RemoteForest, $RemoteAdmin, $RemoteAdminPassword
-
-      $Ansible.Changed = $result.Changed
-      $Ansible.Result = $result.Message
-    error_action: stop
-    parameters:
-      RemoteForest: "{{remote_forest}}"
-      RemoteAdmin: "{{remote_admin}}"
-      RemoteAdminPassword: "{{remote_admin_password}}"
-      LocalAdmin: "{{domain_username}}"
-      LocalAdminPassword: "{{domain_password}}"
-  register:
-    trust_result
+- name: Add trusts between domain using netdom
+  win_shell: |
+    netdom trust "{{domain}}" /Domain:"{{remote_forest}}" /TwoWay /Transitive /ADD /UserD:"{{remote_admin}}" /PasswordD:"{{remote_admin_password}}" /UserO:"{{domain_username}}" /PasswordO:"{{domain_password}}"
+  register: trust_result
+  when: trust_check.stdout is search("NOTEXISTS")
+  changed_when: trust_result.rc == 0
 
 - name: "Reboot and wait for the AD system to restart"
   win_reboot:
     test_command: "Get-ADUser -Identity Administrator -Properties *"
-  when: trust_result.changed
+  when: trust_result.changed | default(false)
 
 
 #      $localforest=[System.DirectoryServices.ActiveDirectory.Forest]::getCurrentForest()
