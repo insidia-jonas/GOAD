@@ -126,28 +126,28 @@
   when: win_reg.changed
 
 - name: Firewall | Allow MSSQL through Firewall
-  win_dsc:
-    resource_name: xFirewall
-    Name: "Access for MSSQL (TCP-In)"
-    Ensure: present
-    Enabled: True
-    Profile: "Domain"
-    Direction: "Inbound"
-    Localport: "1433"
-    Protocol: "TCP"
-    Description: "Opens the listener port for MSSQL"
+  community.windows.win_firewall_rule:
+    name: "Access for MSSQL (TCP-In)"
+    localport: 1433
+    action: allow
+    direction: in
+    protocol: tcp
+    profiles: domain
+    state: present
+    enabled: yes
+    description: "Opens the listener port for MSSQL"
 
 - name: Firewall | Allow MSSQL discover through Firewall
-  win_dsc:
-    resource_name: xFirewall
-    Name: "Access for MSSQL (UDP-In)"
-    Ensure: present
-    Enabled: True
-    Profile: "Domain"
-    Direction: "Inbound"
-    Localport: "1434"
-    Protocol: "UDP"
-    Description: "Opens the discover port for MSSQL"
+  community.windows.win_firewall_rule:
+    name: "Access for MSSQL (UDP-In)"
+    localport: 1434
+    action: allow
+    direction: in
+    protocol: udp
+    profiles: domain
+    state: present
+    enabled: yes
+    description: "Opens the discover port for MSSQL"
 
 - name: Be sure service is started
   win_service:
