@@ -3,17 +3,20 @@
 # https://github.com/topotam/PetitPotam
 # https://github.com/leechristensen/SpoolSample
 
+- name: Ensure WebDAV Redirector is installed (required for WebClient)
+  ansible.windows.win_feature:
+    name: WebDAV-Redirector
+    state: present
+  when: ansible_os_name is search("Server")
+  ignore_errors: yes
+  register: webdav_install
+
 - name: Enable WebClient service (for PetitPotam/Coercion attacks)
   ansible.windows.win_service:
     name: WebClient
     start_mode: auto
     state: started
-
-- name: Ensure WebDAV Redirector is installed
-  ansible.windows.win_feature:
-    name: WebDAV-Redirector
-    state: present
-  when: ansible_os_name is search("Server")
+  ignore_errors: yes
 
 - name: Enable Print Spooler service (for PrinterBug/SpoolSample)
   ansible.windows.win_service:
