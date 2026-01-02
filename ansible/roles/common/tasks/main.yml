@@ -20,21 +20,51 @@
       https: "{{ad_https_proxy}}"
   when: http_proxy == "yes"
 
-# PowerShellGet upgrade - only on Server 2016+ (Server OS with PS 5.0+)
-- name: Upgrade module PowerShellGet to fix accept license issue on last windows ansible version
-  win_shell: |
+# PowerShellGet setup - only on Server 2016+ (Server OS with PS 5.0+)
+- name: Install NuGet provider (Server 2016+)
+  ansible.windows.win_shell: |
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    Install-PackageProvider -Name NuGet -Force
-    Install-Module PowerShellGet -Force
+    $nuget = Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue
+    if (-not $nuget -or $nuget.Version -lt [Version]"2.8.5.201") {
+      Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force | Out-Null
+      "CHANGED"
+    } else {
+      "OK"
+    }
+  register: nuget_result
+  changed_when: "'CHANGED' in nuget_result.stdout"
+  when:
+    - ansible_os_product_type == "Server"
+    - ansible_distribution_version is version('10.0', '>=')
+
+- name: Trust PSGallery repository (Server 2016+)
+  ansible.windows.win_shell: |
+    $repo = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+    if ($repo.InstallationPolicy -ne 'Trusted') {
+      Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+      "CHANGED"
+    } else {
+      "OK"
+    }
+  register: psgallery_result
+  changed_when: "'CHANGED' in psgallery_result.stdout"
   when:
     - ansible_os_product_type == "Server"
     - ansible_distribution_version is version('10.0', '>=')
 
 # DSC modules - only on Windows Server 2016+ (not Windows Client, not 2012 R2)
-- name: Windows Server | Check for ComputerManagementDsc Powershell module
-  win_psmodule:
-    name: ComputerManagementDsc
-    state: present
+- name: Windows Server | Install ComputerManagementDsc Powershell module
+  ansible.windows.win_shell: |
+    $module = Get-Module -ListAvailable -Name ComputerManagementDsc -ErrorAction SilentlyContinue
+    if (-not $module) {
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      Install-Module -Name ComputerManagementDsc -Force -SkipPublisherCheck
+      "CHANGED"
+    } else {
+      "OK"
+    }
+  register: cmdsc_result
+  changed_when: "'CHANGED' in cmdsc_result.stdout"
   when:
     - ansible_os_product_type == "Server"
     - ansible_distribution_version is version('10.0', '>=')
@@ -57,10 +87,18 @@
   when: ansible_os_product_type != "Server" or ansible_distribution_version is version('10.0', '<')
 
 # xNetworking module - only on Windows Server 2016+
-- name: Windows Server | Check for xNetworking Powershell module
-  win_psmodule:
-    name: xNetworking
-    state: present
+- name: Windows Server | Install xNetworking Powershell module
+  ansible.windows.win_shell: |
+    $module = Get-Module -ListAvailable -Name xNetworking -ErrorAction SilentlyContinue
+    if (-not $module) {
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      Install-Module -Name xNetworking -Force -SkipPublisherCheck
+      "CHANGED"
+    } else {
+      "OK"
+    }
+  register: xnet_result
+  changed_when: "'CHANGED' in xnet_result.stdout"
   when:
     - ansible_os_product_type == "Server"
     - ansible_distribution_version is version('10.0', '>=')

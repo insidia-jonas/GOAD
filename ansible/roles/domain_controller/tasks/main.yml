@@ -48,10 +48,44 @@
     name: DNS
     state: present
 
-- name: Check for xDnsServer Powershell module
-  win_psmodule:
-    name: xDnsServer
-    state: present
+# Fix for "AcceptLicense parameter not found" - install NuGet provider and configure PSGallery first
+- name: Install NuGet provider
+  ansible.windows.win_shell: |
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    $nuget = Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue
+    if (-not $nuget -or $nuget.Version -lt [Version]"2.8.5.201") {
+      Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force | Out-Null
+      "CHANGED"
+    } else {
+      "OK"
+    }
+  register: nuget_result
+  changed_when: "'CHANGED' in nuget_result.stdout"
+
+- name: Trust PSGallery repository
+  ansible.windows.win_shell: |
+    $repo = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+    if ($repo.InstallationPolicy -ne 'Trusted') {
+      Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+      "CHANGED"
+    } else {
+      "OK"
+    }
+  register: psgallery_result
+  changed_when: "'CHANGED' in psgallery_result.stdout"
+
+- name: Install xDnsServer Powershell module
+  ansible.windows.win_shell: |
+    $module = Get-Module -ListAvailable -Name xDnsServer -ErrorAction SilentlyContinue
+    if (-not $module) {
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      Install-Module -Name xDnsServer -Force -SkipPublisherCheck
+      "CHANGED"
+    } else {
+      "OK"
+    }
+  register: xdns_result
+  changed_when: "'CHANGED' in xdns_result.stdout"
 
 - name: enable only the {{domain_adapter}} interface (local) for DNS client requests
   ansible.windows.win_shell: dnscmd . /resetlistenaddresses {{ hostvars[dict_key].ansible_host }}
@@ -68,10 +102,18 @@
 #- name: install nuget
 #  win_shell: install-packageprovider -name nuget -force
 
-- name: "Install XactiveDirectory"
-  win_psmodule:
-    name: ActiveDirectoryDSC
-    state: present
+- name: Install ActiveDirectoryDSC Powershell module
+  ansible.windows.win_shell: |
+    $module = Get-Module -ListAvailable -Name ActiveDirectoryDSC -ErrorAction SilentlyContinue
+    if (-not $module) {
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      Install-Module -Name ActiveDirectoryDSC -Force -SkipPublisherCheck
+      "CHANGED"
+    } else {
+      "OK"
+    }
+  register: addsc_result
+  changed_when: "'CHANGED' in addsc_result.stdout"
 
 - name: Ensure Administrator is part of Enterprise Admins
   win_domain_group_membership:
