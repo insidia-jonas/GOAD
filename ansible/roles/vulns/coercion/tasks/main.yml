@@ -31,6 +31,28 @@
   changed_when: false
   when: ansible_os_product_type == "Server"
 
+# Reboot if WebDAV feature is installed but WebClient service doesn't exist yet
+- name: Reboot to complete WebDAV-Redirector installation (service not yet available)
+  ansible.windows.win_reboot:
+    reboot_timeout: 300
+  when:
+    - ansible_os_product_type == "Server"
+    - ansible_distribution_version is version('10.0', '>=')
+    - webclient_check.stdout is defined
+    - "'NOTEXISTS' in webclient_check.stdout"
+
+# Re-check after reboot
+- name: Re-check if WebClient service exists after reboot
+  ansible.windows.win_shell: |
+    $svc = Get-Service -Name WebClient -ErrorAction SilentlyContinue
+    if ($svc) { "EXISTS" } else { "NOTEXISTS" }
+  register: webclient_check_after_reboot
+  changed_when: false
+  when:
+    - ansible_os_product_type == "Server"
+    - webclient_check.stdout is defined
+    - "'NOTEXISTS' in webclient_check.stdout"
+
 # Enable WebClient on Windows Server 2016+ (after feature install and service exists)
 - name: Enable WebClient service (Server 2016+)
   ansible.windows.win_service:
@@ -40,8 +62,8 @@
   when:
     - ansible_os_product_type == "Server"
     - ansible_distribution_version is version('10.0', '>=')
-    - webclient_check.stdout is defined
-    - "'EXISTS' in webclient_check.stdout"
+    - (webclient_check.stdout is defined and "'EXISTS' in webclient_check.stdout") or
+      (webclient_check_after_reboot.stdout is defined and "'EXISTS' in webclient_check_after_reboot.stdout")
 
 # Enable WebClient on Windows Client (always available - skip if webclient_check ran, meaning it's a server)
 - name: Enable WebClient service (Windows Client)
