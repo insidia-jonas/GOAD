@@ -3,26 +3,33 @@
   win_feature:
     name: Windows-Defender
   register: win_defender_install
+  # Skip on Windows 10/11 (no ServerManager) and Server 2012 R2 (no Windows-Defender feature)
+  when: ansible_distribution_version is version('10.0', '>=')
+  ignore_errors: yes
 
 - name: Reboot if needed
   win_reboot:
     reboot_timeout: 600
     post_reboot_delay: 30
-  when: win_defender_install.reboot_required
+  when: win_defender_install.reboot_required | default(false)
 
 - name: Disable windows defender sending sample
   win_shell: Set-MpPreference -MAPSReporting 0
+  ignore_errors: yes
 
 - name: Disable windows defender sending sample #2 : never send
   win_shell: Set-MpPreference -SubmitSamplesConsent 2
+  ignore_errors: yes
 
 - name: Disable network drive scanning
   win_shell: Set-MpPreference -DisableScanningMappedNetworkDrivesForFullScan $true
   when: windows_defender_status == "off"
+  ignore_errors: yes
 
 - name: Disable realtime monitoring
   win_shell: Set-MpPreference -DisableRealtimeMonitoring $true
   when: windows_defender_status == "off"
+  ignore_errors: yes
 
 #- name: Uninstall windows defender
 #  win_shell: Uninstall-WindowsFeature -Name Windows-Defender
