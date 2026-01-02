@@ -38,6 +38,7 @@
     ansible_become_method: runas
     ansible_become_user: "{{domain_username}}"
     ansible_become_password: "{{domain_password}}"
+    ansible_become_flags: logon_type=new_credentials logon_flags=netcredentials_only
   register:
     trust_result
 
@@ -65,3 +66,4 @@
     domain_name: "{{domain}}"
     ansible_become_user: "{{domain_username}}"
     ansible_become_password: "{{domain_password}}"
+    ansible_become_flags: logon_type=new_credentials logon_flags=netcredentials_only
