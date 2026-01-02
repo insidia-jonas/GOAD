@@ -43,14 +43,14 @@
     - webclient_check.stdout is defined
     - "'EXISTS' in webclient_check.stdout"
 
-# Enable WebClient on Windows Client (always available)
+# Enable WebClient on Windows Client (always available - skip if webclient_check ran, meaning it's a server)
 - name: Enable WebClient service (Windows Client)
   ansible.windows.win_service:
     name: WebClient
     start_mode: auto
     state: started
   when:
-    - ansible_os_product_type != "Server"
+    - webclient_check is skipped
     - ansible_distribution_version is version('10.0', '>=')
 
 # Print Spooler and Remote Registry available on all Windows versions
