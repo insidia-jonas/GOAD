@@ -15,7 +15,7 @@
       # Configure Web Enrollment without requiring HTTPS
       Import-Module ServerManager
       try {
-        Install-AdcsWebEnrollment -CAConfig "{{ca_server}}\{{ca_name}}" -Force -ErrorAction Stop
+        Install-AdcsWebEnrollment -CAConfig "{{lab.domains[domain].ca_server | default(inventory_hostname)}}\{{lab.domains[domain].netbios_name}}-CA" -Force -ErrorAction Stop
         $Ansible.Changed = $true
       } catch {
         if ($_.Exception.Message -like "*already configured*") {
@@ -24,11 +24,7 @@
           throw $_
         }
       }
-  vars:
-    ansible_become: yes
-    ansible_become_method: runas
-    ansible_become_user: "{{domain_username}}"
-    ansible_become_password: "{{domain_password}}"
+  ignore_errors: yes
 
 - name: Disable Extended Protection for Authentication (enables NTLM relay)
   ansible.windows.win_powershell:
