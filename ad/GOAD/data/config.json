@@ -278,6 +278,26 @@
                 }
             }
         },
+        "ws01" : {
+            "hostname" : "harrenhal",
+            "type" : "workstation",
+            "local_admin_password": "W1nd0ws11!",
+            "domain" : "sevenkingdoms.local",
+            "path" : "DC=sevenkingdoms,DC=local",
+            "use_laps": false,
+            "local_groups" : {
+                "Administrators" : [
+                    "sevenkingdoms\\jaime.lannister"
+                ],
+                "Remote Desktop Users" : [
+                    "sevenkingdoms\\Baratheon",
+                    "sevenkingdoms\\Lannister"
+                ]
+            },
+            "scripts" : [],
+            "vulns" : ["disable_firewall", "coercion"],
+            "vulns_vars" : {}
+        },
         "ws02" : {
             "hostname" : "theeyrie",
             "type" : "workstation",

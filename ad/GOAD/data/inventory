@@ -55,6 +55,7 @@ dc03
 srv02
 srv03
 srv04
+ws01
 ws02
 
 [linux_domain]
@@ -77,6 +78,7 @@ srv04
 ; workstation to enroll (mandatory if you want workstation)
 ; usage : ad-servers.yml, laps.yml
 [workstation]
+ws01
 ws02
 
 ; parent domain controler (mandatory)
@@ -160,6 +162,7 @@ dc01
 dc02
 dc03
 srv03
+ws01
 ws02
 
 ; disable defender
@@ -182,6 +185,7 @@ dc03
 srv02
 srv03
 srv04
+ws01
 ws02
 
 ; wazuh agents linux - linux machines in domain
@@ -198,6 +202,7 @@ dc03
 srv02
 srv03
 srv04
+ws01
 ws02
 
 ;stay empty until override

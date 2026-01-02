@@ -75,3 +75,7 @@ default:
   - servers.yml
   - security.yml
   - vulnerabilities.yml
+  # Wazuh EDR installation
+  - wazuh.yml
+  # Show credentials at the end
+  - credentials.yml
