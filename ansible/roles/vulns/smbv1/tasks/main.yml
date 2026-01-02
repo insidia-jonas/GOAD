@@ -1,6 +1,7 @@
 # SMB1Protocol feature name varies by Windows version:
 # - Windows Server 2012 R2 and earlier: FS-SMB1
 # - Windows Server 2016+: SMB1Protocol
+# Note: win_feature only works on Windows Server (not Windows Client)
 
 - name: Enable SMBV1 feature (Server 2016+)
   win_feature:
@@ -9,17 +10,26 @@
     include_sub_features: yes
     include_management_tools: yes
   register: win_feature_new
-  when: ansible_distribution_version is version('10.0', '>=')
-  ignore_errors: yes
+  when:
+    - ansible_os_product_type == "Server"
+    - ansible_distribution_version is version('10.0', '>=')
 
-- name: Enable SMBV1 feature (Server 2012 R2 and earlier)
+- name: Enable SMBV1 feature (Server 2012 R2)
   win_feature:
     name: FS-SMB1
     state: present
   register: win_feature_old
-  when: ansible_distribution_version is version('10.0', '<')
-  ignore_errors: yes
+  when:
+    - ansible_os_product_type == "Server"
+    - ansible_distribution_version is version('10.0', '<')
+
+# Enable SMB1 on Windows Client via Optional Features
+- name: Enable SMBV1 on Windows Client (10/11)
+  win_shell: |
+    Enable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -NoRestart
+  register: win_client_smb1
+  when: ansible_os_product_type != "Server"
 
 - name: Reboot if feature requires it
   ansible.windows.win_reboot:
-  when: (win_feature_new.reboot_required | default(false)) or (win_feature_old.reboot_required | default(false))
+  when: (win_feature_new.reboot_required | default(false)) or (win_feature_old.reboot_required | default(false)) or (win_client_smb1.changed | default(false))

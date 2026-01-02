@@ -3,21 +3,25 @@
 # https://github.com/topotam/PetitPotam
 # https://github.com/leechristensen/SpoolSample
 
-- name: Ensure WebDAV Redirector is installed (required for WebClient)
+# WebDAV-Redirector feature - only on Windows Server 2016+ (not 2012 R2)
+- name: Ensure WebDAV Redirector is installed (Server 2016+)
   ansible.windows.win_feature:
     name: WebDAV-Redirector
     state: present
-  when: ansible_os_name is search("Server")
-  ignore_errors: yes
+  when:
+    - ansible_os_product_type == "Server"
+    - ansible_distribution_version is version('10.0', '>=')
   register: webdav_install
 
-- name: Enable WebClient service (for PetitPotam/Coercion attacks)
+# Enable WebClient on Windows Server 2016+ (after feature install) and Windows Client
+- name: Enable WebClient service (Server 2016+ and Windows Client)
   ansible.windows.win_service:
     name: WebClient
     start_mode: auto
     state: started
-  ignore_errors: yes
+  when: ansible_distribution_version is version('10.0', '>=')
 
+# Print Spooler and Remote Registry available on all Windows versions
 - name: Enable Print Spooler service (for PrinterBug/SpoolSample)
   ansible.windows.win_service:
     name: Spooler
