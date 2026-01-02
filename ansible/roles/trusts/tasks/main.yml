@@ -9,33 +9,34 @@
     script: |
       [CmdletBinding()]
       param (
-          [String]
-          $RemoteForest,
-
-          [String]
-          $RemoteAdmin,
-
-          [String]
-          $RemoteAdminPassword,
-
-          [String]
-          $LocalAdmin,
-
-          [String]
-          $LocalAdminPassword
+          [String]$RemoteForest,
+          [String]$RemoteAdmin,
+          [String]$RemoteAdminPassword,
+          [String]$LocalAdmin,
+          [String]$LocalAdminPassword
       )
-      # Use explicit credentials instead of become
+
+      # Create credential for local domain admin
       $localCred = New-Object System.Management.Automation.PSCredential($LocalAdmin, (ConvertTo-SecureString $LocalAdminPassword -AsPlainText -Force))
-      $localforest=[System.DirectoryServices.ActiveDirectory.Forest]::getCurrentForest()
-      try {
-        $localForest.GetTrustRelationship($RemoteForest)
-        $Ansible.Changed = $false
-      } catch [System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException] {
-        $Ansible.Changed = $true
-        $remoteContext = New-Object -TypeName "System.DirectoryServices.ActiveDirectory.DirectoryContext" -ArgumentList @( "Forest", $RemoteForest, $RemoteAdmin, $RemoteAdminPassword)
-        $distantForest = [System.DirectoryServices.ActiveDirectory.Forest]::getForest($remoteContext)
-        $localForest.CreateTrustRelationship($distantForest,"Bidirectional")
-      }
+
+      # Run the trust creation in the context of domain admin using Invoke-Command
+      $result = Invoke-Command -ComputerName localhost -Credential $localCred -ScriptBlock {
+        param($RemoteForest, $RemoteAdmin, $RemoteAdminPassword)
+
+        $localforest = [System.DirectoryServices.ActiveDirectory.Forest]::getCurrentForest()
+        try {
+          $localForest.GetTrustRelationship($RemoteForest)
+          return @{Changed = $false; Message = "Trust already exists"}
+        } catch [System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException] {
+          $remoteContext = New-Object -TypeName "System.DirectoryServices.ActiveDirectory.DirectoryContext" -ArgumentList @("Forest", $RemoteForest, $RemoteAdmin, $RemoteAdminPassword)
+          $distantForest = [System.DirectoryServices.ActiveDirectory.Forest]::getForest($remoteContext)
+          $localForest.CreateTrustRelationship($distantForest, "Bidirectional")
+          return @{Changed = $true; Message = "Trust created"}
+        }
+      } -ArgumentList $RemoteForest, $RemoteAdmin, $RemoteAdminPassword
+
+      $Ansible.Changed = $result.Changed
+      $Ansible.Result = $result.Message
     error_action: stop
     parameters:
       RemoteForest: "{{remote_forest}}"
