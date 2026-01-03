@@ -323,6 +323,22 @@
                     }
                 }
             }
+        },
+        "kali" : {
+            "hostname" : "kali",
+            "type" : "attacker",
+            "os": "linux",
+            "local_admin_password": "kali",
+            "security": [""],
+            "security_vars": {}
+        },
+        "commando" : {
+            "hostname" : "COMMANDO",
+            "type" : "attacker",
+            "os": "windows",
+            "local_admin_password": "CommandoVM!",
+            "security": [""],
+            "security_vars": {}
         }
     },
     "domains" : {

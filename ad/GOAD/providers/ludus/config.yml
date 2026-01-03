@@ -83,3 +83,22 @@ ludus:
     ram_gb: 8
     cpus: 2
     linux: true
+  # Kali Linux - Attacker VM
+  - vm_name: "{{ range_id }}-GOAD-KALI"
+    hostname: "{{ range_id }}-KALI"
+    template: kali-x64-desktop-template
+    vlan: 10
+    ip_last_octet: 50
+    ram_gb: 4
+    cpus: 2
+    linux: true
+  # Commando VM - Windows Attacker VM
+  - vm_name: "{{ range_id }}-GOAD-COMMANDO"
+    hostname: "{{ range_id }}-COMMANDO"
+    template: win11-22h2-x64-enterprise-template
+    vlan: 10
+    ip_last_octet: 52
+    ram_gb: 8
+    cpus: 2
+    windows:
+      sysprep: true
