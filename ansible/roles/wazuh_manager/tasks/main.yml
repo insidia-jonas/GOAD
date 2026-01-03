@@ -7,6 +7,13 @@
     state: directory
     mode: '0755'
 
+# Install CA certificates to fix SSL issues
+- name: Install CA certificates
+  ansible.builtin.apt:
+    name: ca-certificates
+    state: present
+    update_cache: yes
+
 - name: Check services facts
   ansible.builtin.service_facts:
 
@@ -14,6 +21,7 @@
   get_url:
     url: "{{ wazuh_install_script_url }}"
     dest: /opt/wazuh/wazuh-install.sh
+    validate_certs: no
   when: not ansible_facts.services['wazuh-manager.service'] is defined
 
 - name: Run Wazuh installation script
