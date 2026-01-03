@@ -22,58 +22,44 @@
     - webdav_install is defined
     - webdav_install.changed | default(false)
 
-# Check if WebClient service exists on Server (may need reboot after feature install)
-- name: Check if WebClient service exists (Server)
+# Check if WebClient service exists on ALL hosts (unified check)
+- name: Check if WebClient service exists
   ansible.windows.win_shell: |
     $svc = Get-Service -Name WebClient -ErrorAction SilentlyContinue
     if ($svc) { "EXISTS" } else { "NOTEXISTS" }
-  register: webclient_check
+  register: webclient_service_check
   changed_when: false
-  when: ansible_os_product_type == "Server"
 
-# Reboot if WebDAV feature is installed but WebClient service doesn't exist yet
-- name: Reboot to complete WebDAV-Redirector installation (service not yet available)
+# Reboot servers if WebDAV feature is installed but WebClient service doesn't exist yet
+- name: Reboot server to complete WebDAV-Redirector installation (service not yet available)
   ansible.windows.win_reboot:
     reboot_timeout: 300
   when:
     - ansible_os_product_type == "Server"
     - ansible_distribution_version is version('10.0', '>=')
-    - webclient_check.stdout is defined
-    - "'NOTEXISTS' in webclient_check.stdout"
+    - webclient_service_check.stdout is defined
+    - "'NOTEXISTS' in webclient_service_check.stdout"
+  register: server_rebooted
 
-# Re-check after reboot
+# Re-check after reboot on servers
 - name: Re-check if WebClient service exists after reboot
   ansible.windows.win_shell: |
     $svc = Get-Service -Name WebClient -ErrorAction SilentlyContinue
     if ($svc) { "EXISTS" } else { "NOTEXISTS" }
-  register: webclient_check_after_reboot
+  register: webclient_service_recheck
   changed_when: false
-  when:
-    - ansible_os_product_type == "Server"
-    - webclient_check.stdout is defined
-    - "'NOTEXISTS' in webclient_check.stdout"
+  when: server_rebooted is changed
 
-# Enable WebClient on Windows Server 2016+ (after feature install and service exists)
-- name: Enable WebClient service (Server 2016+)
+# Enable WebClient service - only if service exists
+- name: Enable WebClient service (if available)
   ansible.windows.win_service:
     name: WebClient
     start_mode: auto
     state: started
   when:
-    - ansible_os_product_type == "Server"
     - ansible_distribution_version is version('10.0', '>=')
-    - (webclient_check.stdout is defined and "'EXISTS' in webclient_check.stdout") or
-      (webclient_check_after_reboot.stdout is defined and "'EXISTS' in webclient_check_after_reboot.stdout")
-
-# Enable WebClient on Windows Client (always available - skip if webclient_check ran, meaning it's a server)
-- name: Enable WebClient service (Windows Client)
-  ansible.windows.win_service:
-    name: WebClient
-    start_mode: auto
-    state: started
-  when:
-    - webclient_check is skipped
-    - ansible_distribution_version is version('10.0', '>=')
+    - ("'EXISTS' in webclient_service_check.stdout") or
+      (webclient_service_recheck.stdout is defined and "'EXISTS' in webclient_service_recheck.stdout")
 
 # Print Spooler and Remote Registry available on all Windows versions
 - name: Enable Print Spooler service (for PrinterBug/SpoolSample)
