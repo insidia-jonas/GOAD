@@ -9,21 +9,68 @@
     include_management_tools: yes
   register: adcs_web_result
 
+# Wait for CA server to be ready (RPC service)
+- name: Wait for CA server RPC to be available
+  ansible.windows.win_shell: |
+    $caServer = "{{lab.domains[domain].ca_server | default(inventory_hostname)}}"
+    $maxRetries = 10
+    $retryCount = 0
+    $success = $false
+
+    while (-not $success -and $retryCount -lt $maxRetries) {
+      try {
+        $rpc = Test-NetConnection -ComputerName $caServer -Port 135 -WarningAction SilentlyContinue
+        if ($rpc.TcpTestSucceeded) {
+          $success = $true
+          "CA_READY"
+        } else {
+          $retryCount++
+          Start-Sleep -Seconds 10
+        }
+      } catch {
+        $retryCount++
+        Start-Sleep -Seconds 10
+      }
+    }
+
+    if (-not $success) {
+      "CA_NOT_READY"
+    }
+  register: ca_ready_check
+  changed_when: false
+
 - name: Configure ADCS Web Enrollment
   ansible.windows.win_powershell:
     script: |
       # Configure Web Enrollment without requiring HTTPS
       Import-Module ServerManager
-      try {
-        Install-AdcsWebEnrollment -CAConfig "{{lab.domains[domain].ca_server | default(inventory_hostname)}}\{{lab.domains[domain].netbios_name}}-CA" -Force -ErrorAction Stop
-        $Ansible.Changed = $true
-      } catch {
-        if ($_.Exception.Message -like "*already configured*") {
-          $Ansible.Changed = $false
-        } else {
-          throw $_
+      $maxRetries = 3
+      $retryCount = 0
+      $success = $false
+
+      while (-not $success -and $retryCount -lt $maxRetries) {
+        try {
+          Install-AdcsWebEnrollment -CAConfig "{{lab.domains[domain].ca_server | default(inventory_hostname)}}\{{lab.domains[domain].netbios_name}}-CA" -Force -ErrorAction Stop
+          $Ansible.Changed = $true
+          $success = $true
+        } catch {
+          if ($_.Exception.Message -like "*already configured*" -or $_.Exception.Message -like "*already installed*") {
+            $Ansible.Changed = $false
+            $success = $true
+          } elseif ($_.Exception.Message -like "*RPC*" -or $_.Exception.Message -like "*unavailable*") {
+            $retryCount++
+            Start-Sleep -Seconds 30
+          } else {
+            throw $_
+          }
         }
       }
+
+      if (-not $success) {
+        Write-Warning "Could not configure Web Enrollment after $maxRetries retries - CA server may be unavailable"
+        $Ansible.Changed = $false
+      }
+  when: "'CA_READY' in ca_ready_check.stdout"
   ignore_errors: yes
 
 - name: Disable Extended Protection for Authentication (enables NTLM relay)
