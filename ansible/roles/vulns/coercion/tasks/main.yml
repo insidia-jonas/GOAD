@@ -23,10 +23,11 @@
     - webdav_install.changed | default(false)
 
 # Check if WebClient service exists on ALL hosts (unified check)
+# Use FOUND/MISSING to avoid substring issues (EXISTS is substring of NOTEXISTS)
 - name: Check if WebClient service exists
   ansible.windows.win_shell: |
     $svc = Get-Service -Name WebClient -ErrorAction SilentlyContinue
-    if ($svc) { "EXISTS" } else { "NOTEXISTS" }
+    if ($svc) { "WEBCLIENT_FOUND" } else { "WEBCLIENT_MISSING" }
   register: webclient_service_check
   changed_when: false
 
@@ -38,19 +39,19 @@
     - ansible_os_product_type == "Server"
     - ansible_distribution_version is version('10.0', '>=')
     - webclient_service_check.stdout is defined
-    - "'NOTEXISTS' in webclient_service_check.stdout"
+    - "'WEBCLIENT_MISSING' in webclient_service_check.stdout"
   register: server_rebooted
 
 # Re-check after reboot on servers
 - name: Re-check if WebClient service exists after reboot
   ansible.windows.win_shell: |
     $svc = Get-Service -Name WebClient -ErrorAction SilentlyContinue
-    if ($svc) { "EXISTS" } else { "NOTEXISTS" }
+    if ($svc) { "WEBCLIENT_FOUND" } else { "WEBCLIENT_MISSING" }
   register: webclient_service_recheck
   changed_when: false
   when: server_rebooted is changed
 
-# Enable WebClient service - only if service exists
+# Enable WebClient service - only if service exists (FOUND in check or recheck)
 - name: Enable WebClient service (if available)
   ansible.windows.win_service:
     name: WebClient
@@ -58,8 +59,7 @@
     state: started
   when:
     - ansible_distribution_version is version('10.0', '>=')
-    - ("'EXISTS' in webclient_service_check.stdout") or
-      (webclient_service_recheck.stdout is defined and "'EXISTS' in webclient_service_recheck.stdout")
+    - "'WEBCLIENT_FOUND' in webclient_service_check.stdout | default('') or 'WEBCLIENT_FOUND' in webclient_service_recheck.stdout | default('')"
 
 # Print Spooler and Remote Registry available on all Windows versions
 - name: Enable Print Spooler service (for PrinterBug/SpoolSample)
