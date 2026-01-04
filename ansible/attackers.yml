@@ -1,0 +1,61 @@
+---
+# Attacker VMs Playbook
+# Installs tools on Kali and Commando VMs
+
+# Commando VM Installation (Windows)
+- name: Install Commando VM
+  hosts: commando
+  gather_facts: true
+  vars:
+    hosts_dict: "{{ lab.hosts }}"
+  roles:
+    - { role: commando_vm }
+
+# Kali Linux - already comes with tools, just ensure it's ready
+- name: Configure Kali Linux
+  hosts: kali
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      ignore_errors: yes
+
+    - name: Ensure common pentesting tools are installed
+      apt:
+        name:
+          - nmap
+          - netcat-openbsd
+          - gobuster
+          - crackmapexec
+          - impacket-scripts
+          - bloodhound
+          - neo4j
+          - evil-winrm
+          - responder
+          - john
+          - hashcat
+          - smbclient
+          - ldap-utils
+          - python3-pip
+          - pipx
+        state: present
+      ignore_errors: yes
+
+    - name: Install certipy via pipx
+      become: true
+      become_user: kali
+      shell: pipx install certipy-ad
+      ignore_errors: yes
+
+    - name: Install coercer via pipx
+      become: true
+      become_user: kali
+      shell: pipx install coercer
+      ignore_errors: yes
+
+    - name: Display Kali setup status
+      debug:
+        msg: "Kali Linux is ready for pentesting"

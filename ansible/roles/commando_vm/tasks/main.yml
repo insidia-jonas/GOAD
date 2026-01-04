@@ -1,0 +1,102 @@
+---
+# Commando VM Installation Role
+# https://github.com/mandiant/commando-vm
+# Note: This installation takes 2-4 hours depending on internet speed
+
+- name: Disable Windows Defender Real-Time Protection
+  ansible.windows.win_powershell:
+    script: |
+      Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+      Set-MpPreference -DisableBehaviorMonitoring $true -ErrorAction SilentlyContinue
+      Set-MpPreference -DisableBlockAtFirstSeen $true -ErrorAction SilentlyContinue
+      Set-MpPreference -DisableIOAVProtection $true -ErrorAction SilentlyContinue
+      Set-MpPreference -DisablePrivacyMode $true -ErrorAction SilentlyContinue
+      Set-MpPreference -SignatureDisableUpdateOnStartupWithoutEngine $true -ErrorAction SilentlyContinue
+      Set-MpPreference -DisableArchiveScanning $true -ErrorAction SilentlyContinue
+      Set-MpPreference -DisableIntrusionPreventionSystem $true -ErrorAction SilentlyContinue
+      Set-MpPreference -DisableScriptScanning $true -ErrorAction SilentlyContinue
+      Set-MpPreference -SubmitSamplesConsent 2 -ErrorAction SilentlyContinue
+  ignore_errors: yes
+
+- name: Disable Windows Defender via Registry
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender
+    name: DisableAntiSpyware
+    data: 1
+    type: dword
+  ignore_errors: yes
+
+- name: Disable Windows Defender Real-Time Protection via Registry
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection
+    name: DisableRealtimeMonitoring
+    data: 1
+    type: dword
+  ignore_errors: yes
+
+- name: Set PowerShell Execution Policy to Unrestricted
+  ansible.windows.win_powershell:
+    script: |
+      Set-ExecutionPolicy Unrestricted -Force -Scope LocalMachine
+
+- name: Create Commando VM directory
+  ansible.windows.win_file:
+    path: C:\commando-vm
+    state: directory
+
+- name: Check if Commando VM is already downloaded
+  ansible.windows.win_stat:
+    path: C:\commando-vm\install.ps1
+  register: commando_installer
+
+- name: Download Commando VM from GitHub
+  ansible.windows.win_powershell:
+    script: |
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      $ProgressPreference = 'SilentlyContinue'
+
+      # Download latest release
+      $zipUrl = "https://github.com/mandiant/commando-vm/archive/refs/heads/main.zip"
+      $zipPath = "C:\commando-vm\commando-vm.zip"
+
+      Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
+
+      # Extract
+      Expand-Archive -Path $zipPath -DestinationPath "C:\commando-vm" -Force
+
+      # Move files to root
+      Get-ChildItem "C:\commando-vm\commando-vm-main\*" | Move-Item -Destination "C:\commando-vm\" -Force
+
+      # Cleanup
+      Remove-Item "C:\commando-vm\commando-vm-main" -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+
+      # Unblock files
+      Get-ChildItem "C:\commando-vm" -Recurse | Unblock-File
+  when: not commando_installer.stat.exists
+  async: 600
+  poll: 30
+
+- name: Check if Commando VM installation is complete
+  ansible.windows.win_stat:
+    path: C:\commando-vm\.installed
+  register: commando_installed
+
+- name: Run Commando VM installer (this takes 2-4 hours)
+  ansible.windows.win_powershell:
+    script: |
+      cd C:\commando-vm
+      .\install.ps1 -cli -nochecks
+
+      # Mark installation complete
+      New-Item -Path "C:\commando-vm\.installed" -ItemType File -Force
+    creates: C:\commando-vm\.installed
+  when: not commando_installed.stat.exists
+  async: 21600  # 6 hours timeout
+  poll: 300     # Check every 5 minutes
+  ignore_errors: yes
+  register: commando_install_result
+
+- name: Display Commando VM installation status
+  debug:
+    msg: "Commando VM installation {{ 'completed' if commando_installed.stat.exists else 'started in background' }}"

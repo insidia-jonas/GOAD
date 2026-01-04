@@ -171,6 +171,7 @@ ws02
 [defender_off]
 srv02
 srv04
+commando
 
 ; wazuh EDR server
 ; usage : wazuh.yml
