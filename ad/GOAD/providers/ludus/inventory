@@ -35,7 +35,7 @@ kali ansible_host={{ip_range}}.50 dict_key=kali ansible_connection=ssh ansible_u
 ; ------------------------------------------------
 ; Commando VM - Windows Attacker VM
 ; ------------------------------------------------
-commando ansible_host={{ip_range}}.52 dict_key=commando
+commando ansible_host={{ip_range}}.52 dict_key=commando ansible_connection=winrm ansible_winrm_server_cert_validation=ignore
 
 [all:vars]
 force_dns_server=no
