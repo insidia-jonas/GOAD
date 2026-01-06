@@ -1,0 +1,4 @@
+- name: Disable Windows Server Evaluation Shutdown
+  script: disable_eval_shutdown.ps1
+  register: eval_shutdown_result
+  changed_when: "'CHANGED' in eval_shutdown_result.stdout"
