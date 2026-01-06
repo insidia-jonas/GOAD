@@ -44,6 +44,25 @@
         type: dword
       ignore_errors: yes
 
+    - name: Disable Windows Server Evaluation Shutdown
+      ansible.windows.win_powershell:
+        script: |
+          # Disable the License Manager scheduled task that triggers the shutdown
+          $taskPath = "\Microsoft\Windows\License Manager\"
+          $taskName = "ScheduledShutdown"
+          $task = Get-ScheduledTask -TaskPath $taskPath -TaskName $taskName -ErrorAction SilentlyContinue
+          if ($task -and $task.State -ne 'Disabled') {
+              Disable-ScheduledTask -TaskPath $taskPath -TaskName $taskName
+              Write-Host "Disabled scheduled task: $taskPath$taskName"
+          }
+          # Disable the Windows License Manager Service
+          $service = Get-Service -Name "LicenseManager" -ErrorAction SilentlyContinue
+          if ($service -and $service.StartType -ne 'Disabled') {
+              Set-Service -Name "LicenseManager" -StartupType Disabled
+              if ($service.Status -eq 'Running') { Stop-Service -Name "LicenseManager" -Force }
+          }
+      ignore_errors: yes
+
     - name: Set PowerShell Execution Policy to Unrestricted
       ansible.windows.win_powershell:
         script: |
