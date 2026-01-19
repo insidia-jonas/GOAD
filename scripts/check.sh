@@ -7,8 +7,9 @@ ERROR=$(tput setaf 1; echo -n "  [!]"; tput sgr0)
 GOODTOGO=$(tput setaf 2; echo -n "  [✓]"; tput sgr0)
 INFO=$(tput setaf 3; echo -n "  [-]"; tput sgr0)
 
-PROVIDERS="virtualbox vmware azure proxmox vmware_esxi"
+PROVIDERS="virtualbox vmware azure proxmox vmware_esxi ludus aws"
 ANSIBLE_HOSTS="docker local"
+LABS="GOAD NHA SCCM"
 print_usage() {
   echo "Usage: ./check.sh <provider> <ansible_host>"
   echo "provider must be one of the following:"
@@ -421,6 +422,274 @@ check_ram_space() {
   fi
 }
 
+# ============================================================================
+# LUDUS PROVIDER CHECKS
+# ============================================================================
+
+check_ludus_installed() {
+  if ! which ludus >/dev/null; then
+    (echo >&2 "${ERROR} ludus CLI was not found in your PATH.")
+    (echo >&2 "${ERROR} Please install ludus: https://docs.ludus.cloud/")
+    exit 1
+  else
+    (echo >&2 "${GOODTOGO} ludus CLI is installed")
+  fi
+}
+
+check_ludus_range() {
+  if which ludus >/dev/null; then
+    LUDUS_RANGE=$(ludus range list 2>/dev/null | grep -E "^[0-9]+" | head -1)
+    if [ -n "$LUDUS_RANGE" ]; then
+      RANGE_ID=$(echo "$LUDUS_RANGE" | awk '{print $1}')
+      (echo >&2 "${GOODTOGO} Ludus range found: ID=$RANGE_ID")
+      (echo >&2 "${INFO} Your IP range is likely: 10.${RANGE_ID}.10.x")
+    else
+      (echo >&2 "${INFO} No Ludus range found. Create one with: ludus range create")
+    fi
+  fi
+}
+
+# ============================================================================
+# TEMPLATE AND INVENTORY VALIDATION
+# ============================================================================
+
+check_goad_templates() {
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  GOAD_DIR="$(dirname "$SCRIPT_DIR")"
+
+  (echo >&2 "[+] Checking GOAD templates and configuration files")
+
+  TEMPLATE_OK=1
+
+  # Check main directories exist
+  for dir in "ad" "ansible" "ansible/roles" "extensions"; do
+    if [ -d "$GOAD_DIR/$dir" ]; then
+      (echo >&2 "  ${GOODTOGO} Directory exists: $dir")
+    else
+      (echo >&2 "  ${ERROR} Directory missing: $dir")
+      TEMPLATE_OK=0
+    fi
+  done
+
+  # Check lab configurations
+  for lab in $LABS; do
+    LAB_DIR="$GOAD_DIR/ad/$lab"
+    if [ -d "$LAB_DIR" ]; then
+      (echo >&2 "  ${GOODTOGO} Lab directory exists: ad/$lab")
+
+      # Check config.json
+      if [ -f "$LAB_DIR/data/config.json" ]; then
+        # Validate JSON syntax
+        if python3 -c "import json; json.load(open('$LAB_DIR/data/config.json'))" 2>/dev/null; then
+          (echo >&2 "    ${GOODTOGO} config.json is valid JSON")
+        else
+          (echo >&2 "    ${ERROR} config.json has invalid JSON syntax!")
+          TEMPLATE_OK=0
+        fi
+      else
+        (echo >&2 "    ${ERROR} config.json missing in ad/$lab/data/")
+        TEMPLATE_OK=0
+      fi
+
+      # Check main inventory
+      if [ -f "$LAB_DIR/data/inventory" ]; then
+        (echo >&2 "    ${GOODTOGO} Main inventory exists: ad/$lab/data/inventory")
+      else
+        (echo >&2 "    ${ERROR} Main inventory missing: ad/$lab/data/inventory")
+        TEMPLATE_OK=0
+      fi
+
+      # Check provider inventory for selected provider
+      if [ -n "$PROVIDER" ] && [ -d "$LAB_DIR/providers/$PROVIDER" ]; then
+        if [ -f "$LAB_DIR/providers/$PROVIDER/inventory" ]; then
+          (echo >&2 "    ${GOODTOGO} Provider inventory exists: ad/$lab/providers/$PROVIDER/inventory")
+        else
+          (echo >&2 "    ${ERROR} Provider inventory missing: ad/$lab/providers/$PROVIDER/inventory")
+          TEMPLATE_OK=0
+        fi
+      fi
+    else
+      (echo >&2 "  ${INFO} Lab directory not found: ad/$lab (optional)")
+    fi
+  done
+
+  if [ $TEMPLATE_OK -eq 0 ]; then
+    (echo >&2 "${ERROR} Template validation failed!")
+    exit 1
+  else
+    (echo >&2 "${GOODTOGO} All templates validated successfully")
+  fi
+}
+
+check_inventory_rendered() {
+  # Check if a workspace inventory has unrendered templates
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  GOAD_DIR="$(dirname "$SCRIPT_DIR")"
+
+  (echo >&2 "[+] Checking workspace inventories for unrendered templates")
+
+  WORKSPACE_DIR="$GOAD_DIR/workspace"
+  if [ -d "$WORKSPACE_DIR" ]; then
+    INVENTORY_FILES=$(find "$WORKSPACE_DIR" -name "inventory" -type f 2>/dev/null)
+    if [ -n "$INVENTORY_FILES" ]; then
+      for inv_file in $INVENTORY_FILES; do
+        if grep -q '{{ip_range}}' "$inv_file" 2>/dev/null; then
+          (echo >&2 "  ${ERROR} Unrendered template found in: $inv_file")
+          (echo >&2 "  ${ERROR} The {{ip_range}} placeholder was not replaced!")
+          (echo >&2 "  ${INFO} Fix: Re-run GOAD instance creation or manually replace {{ip_range}} with your IP range")
+          exit 1
+        else
+          (echo >&2 "  ${GOODTOGO} Inventory rendered correctly: $inv_file")
+        fi
+      done
+    else
+      (echo >&2 "  ${INFO} No workspace inventories found (run GOAD install first)")
+    fi
+  else
+    (echo >&2 "  ${INFO} Workspace directory does not exist yet")
+  fi
+}
+
+check_ansible_playbooks() {
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  GOAD_DIR="$(dirname "$SCRIPT_DIR")"
+
+  (echo >&2 "[+] Checking Ansible playbooks")
+
+  PLAYBOOKS="build.yml ad-servers.yml ad-data.yml vulnerabilities.yml"
+  PLAYBOOK_OK=1
+
+  for playbook in $PLAYBOOKS; do
+    if [ -f "$GOAD_DIR/ansible/$playbook" ]; then
+      # Basic YAML syntax check
+      if python3 -c "import yaml; yaml.safe_load(open('$GOAD_DIR/ansible/$playbook'))" 2>/dev/null; then
+        (echo >&2 "  ${GOODTOGO} Playbook valid: $playbook")
+      else
+        (echo >&2 "  ${ERROR} Playbook has YAML syntax error: $playbook")
+        PLAYBOOK_OK=0
+      fi
+    else
+      (echo >&2 "  ${ERROR} Playbook missing: $playbook")
+      PLAYBOOK_OK=0
+    fi
+  done
+
+  if [ $PLAYBOOK_OK -eq 0 ]; then
+    (echo >&2 "${ERROR} Playbook validation failed!")
+    exit 1
+  else
+    (echo >&2 "${GOODTOGO} All playbooks validated successfully")
+  fi
+}
+
+check_ansible_roles() {
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  GOAD_DIR="$(dirname "$SCRIPT_DIR")"
+
+  (echo >&2 "[+] Checking critical Ansible roles")
+
+  # Critical roles that must exist
+  CRITICAL_ROLES="common domain_controller member_server ad settings/hostname settings/admin_password settings/keyboard"
+  ROLES_OK=1
+
+  for role in $CRITICAL_ROLES; do
+    ROLE_PATH="$GOAD_DIR/ansible/roles/$role"
+    if [ -d "$ROLE_PATH" ]; then
+      if [ -f "$ROLE_PATH/tasks/main.yml" ]; then
+        (echo >&2 "  ${GOODTOGO} Role exists: $role")
+      else
+        (echo >&2 "  ${ERROR} Role missing tasks/main.yml: $role")
+        ROLES_OK=0
+      fi
+    else
+      (echo >&2 "  ${ERROR} Role directory missing: $role")
+      ROLES_OK=0
+    fi
+  done
+
+  # Check disable_eval_shutdown role (our new role)
+  if [ -d "$GOAD_DIR/ansible/roles/settings/disable_eval_shutdown" ]; then
+    (echo >&2 "  ${GOODTOGO} Role exists: settings/disable_eval_shutdown")
+  else
+    (echo >&2 "  ${INFO} Optional role missing: settings/disable_eval_shutdown (prevents evaluation shutdown)")
+  fi
+
+  if [ $ROLES_OK -eq 0 ]; then
+    (echo >&2 "${ERROR} Role validation failed!")
+    exit 1
+  else
+    (echo >&2 "${GOODTOGO} All critical roles validated successfully")
+  fi
+}
+
+check_config_json_hosts() {
+  # Validate that config.json has all required host entries
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  GOAD_DIR="$(dirname "$SCRIPT_DIR")"
+  LAB_NAME="${LAB:-GOAD}"
+
+  CONFIG_FILE="$GOAD_DIR/ad/$LAB_NAME/data/config.json"
+
+  if [ -f "$CONFIG_FILE" ]; then
+    (echo >&2 "[+] Validating config.json host entries for $LAB_NAME")
+
+    # Check required fields using Python
+    python3 << EOF
+import json
+import sys
+
+try:
+    with open('$CONFIG_FILE') as f:
+        config = json.load(f)
+
+    lab = config.get('lab', {})
+    hosts = lab.get('hosts', {})
+    domains = lab.get('domains', {})
+
+    errors = []
+
+    # Check hosts have required fields
+    required_host_fields = ['hostname', 'domain', 'local_admin_password']
+    for host_key, host_data in hosts.items():
+        for field in required_host_fields:
+            if field not in host_data:
+                errors.append(f"Host '{host_key}' missing required field: {field}")
+
+    # Check domains exist
+    if not domains:
+        errors.append("No domains defined in config.json")
+
+    # Check domain references are valid
+    for host_key, host_data in hosts.items():
+        host_domain = host_data.get('domain', '')
+        if host_domain and host_domain not in domains:
+            errors.append(f"Host '{host_key}' references undefined domain: {host_domain}")
+
+    if errors:
+        for err in errors:
+            print(f"  [!] {err}", file=sys.stderr)
+        sys.exit(1)
+    else:
+        print(f"  [✓] config.json has {len(hosts)} hosts and {len(domains)} domains", file=sys.stderr)
+        sys.exit(0)
+
+except json.JSONDecodeError as e:
+    print(f"  [!] Invalid JSON: {e}", file=sys.stderr)
+    sys.exit(1)
+except Exception as e:
+    print(f"  [!] Error: {e}", file=sys.stderr)
+    sys.exit(1)
+EOF
+
+    if [ $? -ne 0 ]; then
+      (echo >&2 "${ERROR} config.json validation failed!")
+      exit 1
+    else
+      (echo >&2 "${GOODTOGO} config.json validated successfully")
+    fi
+  fi
+}
+
 main() {
   # Get location of prepare.sh
   # https://stackoverflow.com/questions/59895/getting-the-source-directory-of-a-bash-script-from-within
@@ -509,12 +778,46 @@ main() {
       check_aws_installed
       check_terraform_path
       check_rsync_path
+      case $ANSIBLE_HOST in
+        "docker")
+          check_docker_installed
+          ;;
+        "local")
+          check_python_env
+          ;;
+        *)
+          ;;
+      esac
+      ;;
+    "ludus")
+      (echo >&2 "[+] Enumerating ludus")
+      check_ludus_installed
+      check_ludus_range
+      case $ANSIBLE_HOST in
+        "docker")
+          check_docker_installed
+          ;;
+        "local")
+          check_python_env
+          ;;
+        *)
+          ;;
+      esac
       ;;
     *)
       print_usage
       ;;
   esac
+
+  # Always run template and configuration checks
+  (echo >&2 "")
+  (echo >&2 "[+] Running GOAD configuration validation")
+  check_goad_templates
+  check_ansible_playbooks
+  check_ansible_roles
+  check_config_json_hosts
+  check_inventory_rendered
 }
 
-main 
+main
 exit 0
