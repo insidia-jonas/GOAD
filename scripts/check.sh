@@ -449,6 +449,104 @@ check_ludus_range() {
   fi
 }
 
+check_ludus_templates() {
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  GOAD_DIR="$(dirname "$SCRIPT_DIR")"
+  LAB_NAME="${LAB:-GOAD}"
+
+  (echo >&2 "[+] Checking Ludus VM templates for $LAB_NAME")
+
+  # Required templates for GOAD (extracted from config.yml)
+  REQUIRED_TEMPLATES="win2022-server-x64-template win2012r2-server-x64-template win11-22h2-x64-enterprise-template win10-22h2-x64-enterprise-template debian-12-x64-server-template kali-x64-desktop-template"
+
+  # Get available templates from Ludus
+  if ! which ludus >/dev/null 2>&1; then
+    (echo >&2 "  ${ERROR} ludus CLI not found, skipping template check")
+    return 1
+  fi
+
+  AVAILABLE_TEMPLATES=$(ludus templates list 2>/dev/null | tail -n +3 | awk '{print $1}')
+
+  if [ -z "$AVAILABLE_TEMPLATES" ]; then
+    (echo >&2 "  ${ERROR} Could not retrieve Ludus templates. Are you logged in? Try: ludus auth login")
+    return 1
+  fi
+
+  MISSING_TEMPLATES=""
+  TEMPLATES_OK=1
+
+  for template in $REQUIRED_TEMPLATES; do
+    if echo "$AVAILABLE_TEMPLATES" | grep -q "^${template}$"; then
+      (echo >&2 "  ${GOODTOGO} Template available: $template")
+    else
+      (echo >&2 "  ${ERROR} Template missing: $template")
+      MISSING_TEMPLATES="$MISSING_TEMPLATES $template"
+      TEMPLATES_OK=0
+    fi
+  done
+
+  if [ $TEMPLATES_OK -eq 0 ]; then
+    (echo >&2 "")
+    (echo >&2 "${INFO} Missing templates detected. Would you like to add them? (y/n)")
+    read -r REPLY
+    if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
+      add_ludus_templates "$MISSING_TEMPLATES"
+    else
+      (echo >&2 "${INFO} You can manually add templates with:")
+      for template in $MISSING_TEMPLATES; do
+        (echo >&2 "  ludus templates add -n $template")
+      done
+      (echo >&2 "")
+      (echo >&2 "${INFO} Or build templates with: ludus templates build")
+    fi
+  else
+    (echo >&2 "${GOODTOGO} All required Ludus templates are available")
+  fi
+}
+
+add_ludus_templates() {
+  TEMPLATES_TO_ADD="$1"
+
+  (echo >&2 "[+] Adding missing Ludus templates...")
+
+  for template in $TEMPLATES_TO_ADD; do
+    (echo >&2 "  ${INFO} Adding template: $template")
+
+    # Map template names to Ludus template add commands
+    case $template in
+      "win2022-server-x64-template")
+        ludus templates add -n "$template" 2>&1 | while read line; do echo "    $line"; done
+        ;;
+      "win2012r2-server-x64-template")
+        ludus templates add -n "$template" 2>&1 | while read line; do echo "    $line"; done
+        ;;
+      "win11-22h2-x64-enterprise-template")
+        ludus templates add -n "$template" 2>&1 | while read line; do echo "    $line"; done
+        ;;
+      "win10-22h2-x64-enterprise-template")
+        ludus templates add -n "$template" 2>&1 | while read line; do echo "    $line"; done
+        ;;
+      "debian-12-x64-server-template")
+        ludus templates add -n "$template" 2>&1 | while read line; do echo "    $line"; done
+        ;;
+      "kali-x64-desktop-template")
+        ludus templates add -n "$template" 2>&1 | while read line; do echo "    $line"; done
+        ;;
+      *)
+        (echo >&2 "    ${ERROR} Unknown template: $template")
+        ;;
+    esac
+  done
+
+  (echo >&2 "")
+  (echo >&2 "${INFO} Templates added. You may need to build them with:")
+  (echo >&2 "  ludus templates build")
+  (echo >&2 "")
+  (echo >&2 "${INFO} Check template status with:")
+  (echo >&2 "  ludus templates list")
+  (echo >&2 "  ludus templates status")
+}
+
 # ============================================================================
 # TEMPLATE AND INVENTORY VALIDATION
 # ============================================================================
@@ -793,6 +891,7 @@ main() {
       (echo >&2 "[+] Enumerating ludus")
       check_ludus_installed
       check_ludus_range
+      check_ludus_templates
       case $ANSIBLE_HOST in
         "docker")
           check_docker_installed
