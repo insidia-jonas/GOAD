@@ -6,21 +6,33 @@ GOAD is the first and main lab of this project. It contains 3 domains and 2 fore
 
 ## Servers
 
-This lab is actually composed of five virtual machines:
+This fork builds a full red-team lab (DCs, member servers, workstations, Wazuh, attackers).
+Windows Evaluation images have **WLMS / License Manager disabled** so they no longer power off after one hour.
 
 **domain sevenkingdoms.local**
 
-- **kingslanding** : DC01  running on Windows Server 2019 (with windefender enabled by default)
+- **kingslanding** : DC01
+- **oldtown**      : SRV04 — dedicated **file server** (Finance/HR/Legal/IT/SQL/Public/Archives + dummy files + plaintext SQL credentials)
+- **harrenhal**    : WS01 (Windows 11)
 
 **domain north.sevenkingdoms.local**
 
-- **winterfell**   : DC02  running on Windows Server 2019 (with windefender enabled by default)
-- **castelblack**  : SRV02 running on Windows Server 2019 (with windefender **disabled** by default)
+- **winterfell**   : DC02
+- **castelblack**  : SRV02 — IIS, MSSQL, SMB (`thewall`, `sql`, `it`) (Defender **disabled** by default)
+- **theeyrie**     : WS02 (Windows 10)
 
 **domain essos.local**
 
-- **meereen**      : DC03  running on Windows Server 2016 (with windefender enabled by default)
-- **braavos**      : SRV03 running on Windows Server 2016 (with windefender enabled by default)
+- **meereen**      : DC03
+- **braavos**      : SRV03 — MSSQL, ADCS, LAPS
+
+**blue / red extra**
+
+- **wazuh**        : SIEM 4.14.x (SOCFortress + Sigma + custom AD/SQL rules)
+- **kali** / **commando** : attacker VMs
+- **sophos_xgs**   : optional firewall extension (Home license, `.53`)
+
+Per-host EDR is selected in `ad/GOAD/data/config.json` (`edr`: `wazuh`, `sysmon`, `defender`, `sophos`, `elastic`, `none`). See [edr](../extensions/edr.md).
 
 
 ## WRITEUP
@@ -35,12 +47,19 @@ This lab is actually composed of five virtual machines:
         - Admins : robert.baratheon (U), cersei.lannister (U)
         - RDP: Small Council (G)
 
+    - SRV04 : oldtown.sevenkingdoms.local (file server)
+        - Admins: maester.pycelle (U)
+        - RDP: Small Council (G)
+        - Shares : Finance, HR, Legal, IT, SQL, Public, Archives, FileServer
+        - Dummy corporate files generated at install time
+        - SQL credentials in `IT\SQL`, `SQL\ConnectionStrings`, `Finance\Audits`, `Archives\Citadel`
+
 - **NORTH / north.sevenkingdoms.local**
     - DC02 : winterfell.north.sevenkingdoms.local (Windows Server 2019) (NORTH DC)
         - Admins : eddard.stark (U), catelyn.stark (U), robb.stark (U)
         - RDP: Stark(G)
 
-    - SRV02 : castelblack.essos.local (Windows Server 2019) (IIS, MSSQL, SMB share)
+    - SRV02 : castelblack.north.sevenkingdoms.local (IIS, MSSQL, SMB share)
         - Admins: jeor.mormont (U)
         - RDP: Night Watch (G), Mormont (G), Stark (G)
         - IIS : allow asp upload, run as NT Authority/network
@@ -51,6 +70,8 @@ This lab is actually composed of five virtual machines:
                 - execute as user : arya.stark -> dbo
             - link :
                 - to braavos : jon.snow -> sa
+            - sample DBs : Kingdoms, NightWatch, FreeCities, Citadel (plaintext secrets in `dbo.AppSecrets`)
+        - Shares : `thewall`, `sql`, `it` — connection strings / `web.config` / sa passwords
 
 - **ESSOS / essos.local**
     - DC03  : meereen.essos.local (Windows Server 2016) (ESSOS DC)

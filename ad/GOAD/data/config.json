@@ -4,6 +4,7 @@
         "dc01" : {
             "hostname" : "kingslanding",
             "type" : "dc",
+            "edr" : ["wazuh", "sysmon"],
             "local_admin_password": "8dCT-DJjgScp",
             "domain" : "sevenkingdoms.local",
             "path" : "DC=sevenkingdoms,DC=local",
@@ -33,6 +34,7 @@
         "dc02" : {
             "hostname" : "winterfell",
             "type" : "dc",
+            "edr" : ["wazuh", "sysmon"],
             "local_admin_password": "NgtI75cKV+Pu",
             "domain" : "north.sevenkingdoms.local",
             "path" : "DC=north,DC=sevenkingdoms,DC=local",
@@ -93,6 +95,7 @@
         "srv02" : {
             "hostname" : "castelblack",
             "type" : "server",
+            "edr" : ["wazuh", "sysmon"],
             "local_admin_password": "NgtI75cKV+Pu",
             "domain" : "north.sevenkingdoms.local",
             "path" : "DC=north,DC=sevenkingdoms,DC=local",
@@ -108,7 +111,7 @@
                 ]
             },
             "scripts" : [],
-            "vulns" : ["directory", "disable_firewall", "openshares", "files", "permissions"],
+            "vulns" : ["directory", "disable_firewall", "openshares", "files", "permissions", "shares", "fileserver"],
             "vulns_vars" : {
                 "directory": {
                     "shares": "C:\\shares",
@@ -138,6 +141,26 @@
                         "full"   : "NORTH\\Stark",
                         "change" : "NORTH\\jon.snow,NORTH\\samwell.tarly",
                         "read"   : "Users"
+                    }
+                },
+                "fileserver" : {
+                    "root" : "C:\\shares",
+                    "install_role" : false,
+                    "dummy_files_per_share" : 12,
+                    "plant_sql_credentials" : true,
+                    "shares" : {
+                        "sql" : {
+                            "path" : "C:\\shares\\sql",
+                            "description" : "SQL connection files",
+                            "full" : "NORTH\\Night Watch",
+                            "read" : "Users"
+                        },
+                        "it" : {
+                            "path" : "C:\\shares\\it",
+                            "description" : "IT drop box",
+                            "full" : "NORTH\\Night Watch",
+                            "read" : "Users"
+                        }
                     }
                 }
             },
@@ -176,6 +199,7 @@
         "dc03" : {
             "hostname" : "meereen",
             "type" : "dc",
+            "edr" : ["wazuh", "sysmon"],
             "local_admin_password": "Ufe-bVXSx9rk",
             "domain" : "essos.local",
             "path" : "DC=essos,DC=local",
@@ -210,6 +234,7 @@
         "srv03" : {
             "hostname" : "braavos",
             "type" : "server",
+            "edr" : ["wazuh", "sysmon"],
             "local_admin_password": "978i2pF43UJ-",
             "domain" : "essos.local",
             "path" : "DC=essos,DC=local",
@@ -253,6 +278,7 @@
         "srv04" : {
             "hostname" : "oldtown",
             "type" : "server",
+            "edr" : ["wazuh", "sysmon"],
             "local_admin_password": "L3g4cyS3rv3r!",
             "domain" : "sevenkingdoms.local",
             "path" : "DC=sevenkingdoms,DC=local",
@@ -266,7 +292,7 @@
                 ]
             },
             "scripts" : [],
-            "vulns" : ["disable_firewall", "openshares", "smbv1", "coercion"],
+            "vulns" : ["disable_firewall", "openshares", "smbv1", "coercion", "shares", "fileserver"],
             "vulns_vars" : {
                 "shares" : {
                     "archives" : {
@@ -275,12 +301,71 @@
                         "full"   : "SEVENKINGDOMS\\Small Council",
                         "read"   : "Users"
                     }
+                },
+                "fileserver" : {
+                    "root" : "C:\\FileServer",
+                    "install_role" : true,
+                    "dummy_files_per_share" : 40,
+                    "plant_sql_credentials" : true,
+                    "shares" : {
+                        "Finance" : {
+                            "path" : "C:\\FileServer\\Finance",
+                            "description" : "Crown ledgers and invoices",
+                            "full" : "SEVENKINGDOMS\\Small Council",
+                            "read" : "Users"
+                        },
+                        "HR" : {
+                            "path" : "C:\\FileServer\\HR",
+                            "description" : "Household rolls",
+                            "full" : "SEVENKINGDOMS\\Small Council",
+                            "read" : "Users"
+                        },
+                        "Legal" : {
+                            "path" : "C:\\FileServer\\Legal",
+                            "description" : "Contracts and ravens",
+                            "full" : "SEVENKINGDOMS\\Small Council",
+                            "read" : "Users"
+                        },
+                        "IT" : {
+                            "path" : "C:\\FileServer\\IT",
+                            "description" : "Maester configs and SQL notes",
+                            "full" : "SEVENKINGDOMS\\Small Council",
+                            "change" : "SEVENKINGDOMS\\maester.pycelle",
+                            "read" : "Users"
+                        },
+                        "SQL" : {
+                            "path" : "C:\\FileServer\\SQL",
+                            "description" : "Plaintext SQL connection strings",
+                            "full" : "SEVENKINGDOMS\\Small Council",
+                            "read" : "Users"
+                        },
+                        "Public" : {
+                            "path" : "C:\\FileServer\\Public",
+                            "description" : "Public notices",
+                            "full" : "Administrators",
+                            "change" : "Users",
+                            "read" : "Users"
+                        },
+                        "Archives" : {
+                            "path" : "C:\\FileServer\\Archives",
+                            "description" : "Citadel archives",
+                            "full" : "SEVENKINGDOMS\\Small Council",
+                            "read" : "Users"
+                        },
+                        "FileServer" : {
+                            "path" : "C:\\FileServer",
+                            "description" : "Oldtown file server root",
+                            "full" : "Administrators",
+                            "read" : "Users"
+                        }
+                    }
                 }
             }
         },
         "ws01" : {
             "hostname" : "harrenhal",
             "type" : "workstation",
+            "edr" : ["wazuh", "sysmon", "defender"],
             "local_admin_password": "W1nd0ws11!",
             "domain" : "sevenkingdoms.local",
             "path" : "DC=sevenkingdoms,DC=local",
@@ -301,6 +386,7 @@
         "ws02" : {
             "hostname" : "theeyrie",
             "type" : "workstation",
+            "edr" : ["wazuh", "sysmon"],
             "local_admin_password": "W0rkst4t10n!",
             "domain" : "north.sevenkingdoms.local",
             "path" : "DC=north,DC=sevenkingdoms,DC=local",
@@ -328,6 +414,7 @@
             "hostname" : "kali",
             "type" : "attacker",
             "os": "linux",
+            "edr" : ["none"],
             "local_admin_password": "kali",
             "security": [""],
             "security_vars": {}
@@ -336,6 +423,7 @@
             "hostname" : "COMMANDO",
             "type" : "attacker",
             "os": "windows",
+            "edr" : ["none"],
             "local_admin_password": "CommandoVM!",
             "security": [""],
             "security_vars": {}

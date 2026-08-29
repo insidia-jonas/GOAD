@@ -1,48 +1,28 @@
 ---
-# Wazuh EDR Installation Playbook
-# Installs Wazuh Manager, Sysmon, and Wazuh Agents
-# Includes MITRE ATT&CK and Sigma detection rules
+# Wazuh SIEM / EDR Installation Playbook
+# Installs Wazuh Manager, Sysmon, and Wazuh Agents when selected in config.json
+# "edr" on each host (default: wazuh + sysmon)
 # Credits to SOCFortress, Mayfly277, and MITRE ATT&CK community
 
-- name: Install and configure Wazuh Manager with MITRE ATT&CK rules
+- import_playbook: data.yml
+  vars:
+    data_path: "../ad/{{domain_name}}/data/"
+  tags: 'data'
+
+- name: Install and configure Wazuh Manager with current detection rules
   hosts: wazuh_server
   become: yes
   roles:
     - { role: 'wazuh_manager', tags: 'wazuh_manager' }
 
-- name: Install Sysmon on Windows machines for enhanced logging
+- name: Install Sysmon on hosts that selected wazuh or sysmon
   hosts: sysmon
   roles:
-    - { role: 'sysmon', tags: 'sysmon' }
+    - { role: 'sysmon', tags: 'sysmon', when: "('sysmon' in (lab.hosts[dict_key].edr | default(['wazuh', 'sysmon']))) or ('wazuh' in (lab.hosts[dict_key].edr | default(['wazuh', 'sysmon'])))" }
 
-- name: Install Wazuh Agent on Windows machines
+- name: Install Wazuh Agent on Windows machines that selected wazuh
   hosts: wazuh_agents
   roles:
-    - { role: 'wazuh_agent', tags: 'wazuh_agent' }
+    - { role: 'wazuh_agent', tags: 'wazuh_agent', when: "'wazuh' in (lab.hosts[dict_key].edr | default(['wazuh', 'sysmon']))" }
   vars:
-    wazuh_manager_host: "{{ hostvars['wazuh']['ansible_host'] }}"
-
-- name: Install Sigma rules on Wazuh Manager (optional - requires manual run)
-  hosts: wazuh_server
-  become: yes
-  tasks:
-    - name: Copy Sigma converter script
-      copy:
-        src: "{{ playbook_dir }}/roles/wazuh_manager/files/sigma_to_wazuh.sh"
-        dest: /opt/wazuh/sigma_to_wazuh.sh
-        mode: '0755'
-      tags:
-        - sigma
-        - never
-
-    - name: Display Sigma installation instructions
-      debug:
-        msg: |
-          Sigma rules can be installed manually by running:
-          sudo bash /opt/wazuh/sigma_to_wazuh.sh
-
-          This will download and convert Sigma rules to Wazuh format.
-          Note: This requires internet access and may take a while.
-      tags:
-        - sigma
-        - never
+    wazuh_manager_host: "{{ hostvars['wazuh']['ansible_host'] | default('') }}"

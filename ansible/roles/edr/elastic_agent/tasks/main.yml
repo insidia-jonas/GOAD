@@ -1,0 +1,49 @@
+---
+- name: Skip Elastic Agent when Fleet is not configured
+  debug:
+    msg: >
+      Elastic Agent was selected for {{ inventory_hostname }} but
+      elastic_fleet_url / elastic_enrollment_token are empty.
+      Point them at your Fleet server (or the elk extension) before re-running.
+  when:
+    - (elastic_fleet_url | default('') | length) == 0 or (elastic_enrollment_token | default('') | length) == 0
+
+- name: Install Elastic Agent
+  when:
+    - (elastic_fleet_url | default('') | length) > 0
+    - (elastic_enrollment_token | default('') | length) > 0
+  block:
+    - name: Create Elastic installer directory
+      win_file:
+        path: C:\setup\elastic
+        state: directory
+
+    - name: Set Elastic Agent download URL
+      set_fact:
+        elastic_agent_url: "{{ elastic_agent_url | default('https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-' + elastic_agent_version + '-windows-x86_64.zip', true) }}"
+
+    - name: Download Elastic Agent
+      win_get_url:
+        url: "{{ elastic_agent_url }}"
+        dest: "{{ elastic_agent_dest }}"
+
+    - name: Unzip Elastic Agent
+      win_unzip:
+        src: "{{ elastic_agent_dest }}"
+        dest: C:\setup\elastic
+        creates: C:\setup\elastic\elastic-agent.exe
+
+    - name: Check Elastic Agent service
+      win_service:
+        name: Elastic Agent
+      register: elastic_svc
+      failed_when: false
+
+    - name: Enroll and install Elastic Agent
+      win_command: >
+        C:\setup\elastic\elastic-agent.exe install
+        --url {{ elastic_fleet_url }}
+        --enrollment-token {{ elastic_enrollment_token }}
+        --non-interactive
+        --insecure
+      when: elastic_svc.exists is not defined or not elastic_svc.exists

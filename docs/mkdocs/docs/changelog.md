@@ -50,6 +50,15 @@
 - [X] Shares with secrets (all, sysvol)
 - [X] Sccm (see SCCM lab)
 
+## Red-team lab (this fork)
+
+- [X] Disable Windows Eval / WLMS hourly shutdown on every Windows VM
+- [X] Wazuh 4.14.x + SOCFortress (actually installed) + Sigma + custom AD/red-team/SQL rules
+- [X] Dedicated file server (oldtown/srv04) with realistic dummy files
+- [X] Plaintext SQL credentials on shares + sample MSSQL databases
+- [X] Per-host EDR selection (`wazuh` / `defender` / `sophos` / `elastic` / `none`)
+- [X] Sophos XGS Home extension (API + Entities.xml template)
+
 ## v3
 - [X] aws support
 - [X] ludus support

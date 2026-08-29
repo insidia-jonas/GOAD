@@ -54,3 +54,23 @@
   hosts: office365
   roles:
     - { role: 'office365', tags: 'office365'}
+
+- name: "Seed MSSQL sample databases (Kingdoms / NightWatch / FreeCities / Citadel)"
+  hosts: mssql
+  serial: 1
+  roles:
+    - { role: 'mssql_labdata', tags: 'mssql, mssql_labdata'}
+  vars:
+    domain: "{{lab.hosts[dict_key].domain}}"
+    SQLSVCACCOUNT_NAME: "{{lab.hosts[dict_key].mssql.svcaccount| default('NT AUTHORITY\\NETWORK SERVICE')}}"
+    SQLSVCACCOUNT_NAMEDOMAIN: "{{domain}}\\{{SQLSVCACCOUNT_NAME}}"
+    SQLSVCACCOUNT: "{{SQLSVCACCOUNT_NAME if SQLSVCACCOUNT_NAME == 'NT AUTHORITY\\NETWORK SERVICE' else SQLSVCACCOUNT_NAMEDOMAIN }}"
+    SQLSVCPASSWORD: "{{lab.domains[domain].users[SQLSVCACCOUNT_NAME].password| default('')}}"
+    connection_type: "-E"
+
+- name: "Ensure File Server feature on dedicated file servers"
+  hosts: file_server
+  roles:
+    - { role: 'vulns/fileserver', tags: 'fileserver'}
+  vars:
+    vulns_vars: "{{ lab.hosts[dict_key].vulns_vars.fileserver | default({}) }}"

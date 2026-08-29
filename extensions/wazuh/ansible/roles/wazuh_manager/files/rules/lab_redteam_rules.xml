@@ -1,0 +1,190 @@
+<!--
+  Extra red-team / tradecraft detections for the GOAD lab.
+  Complements SOCFortress + Sigma + the existing MITRE/AD packs.
+
+  Rule IDs: 100800 - 100899
+-->
+
+<group name="windows,sysmon,redteam,goad,">
+
+  <!-- T1003.001 - LSASS memory access / dump tools -->
+  <rule id="100800" level="15">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(sekurlsa|lsadump|comsvcs\.dll.*minidump|procdump.*lsass|nanodump|mimidrv|pypykatz|lsassy|handlekatz|nanodump)</field>
+    <mitre>
+      <id>T1003.001</id>
+    </mitre>
+    <description>GOAD: LSASS credential dump tooling detected</description>
+    <group>attack,credential_access,</group>
+  </rule>
+
+  <rule id="100801" level="14">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.image" type="pcre2">(?i)(mimikatz|rubeus|safetykatz|sharpdump|sharpkatz|lazagne)\.exe$</field>
+    <mitre>
+      <id>T1003</id>
+      <id>T1558</id>
+    </mitre>
+    <description>GOAD: Known credential-theft binary executed</description>
+    <group>attack,credential_access,</group>
+  </rule>
+
+  <!-- Impacket / NetExec / CrackMapExec / evil-winrm -->
+  <rule id="100802" level="12">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(secretsdump|psexec\.py|wmiexec|smbexec|atexec|dcomexec|getNPUsers|GetUserSPNs|ticketer|ntlmrelayx|addcomputer\.py)</field>
+    <mitre>
+      <id>T1021</id>
+      <id>T1003.006</id>
+    </mitre>
+    <description>GOAD: Impacket-style remote execution or dump utility</description>
+    <group>attack,lateral_movement,credential_access,</group>
+  </rule>
+
+  <rule id="100803" level="12">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(crackmapexec|nxc\s|netexec|evil-winrm|enum4linux|ldapsearch|bloodhound|sharphound|certipy|certify\.exe)</field>
+    <mitre>
+      <id>T1087</id>
+      <id>T1069</id>
+      <id>T1649</id>
+    </mitre>
+    <description>GOAD: AD enumeration / ADCS abuse tooling</description>
+    <group>attack,discovery,credential_access,</group>
+  </rule>
+
+  <!-- T1059.001 - PowerShell AD / C2 tradecraft -->
+  <rule id="100810" level="12">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(Invoke-Kerberoast|Invoke-Mimikatz|Invoke-BloodHound|Invoke-Rubeus|Invoke-ShareFinder|Find-LocalAdminAccess|Get-NetUser|Get-DomainUser)</field>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1087.002</id>
+    </mitre>
+    <description>GOAD: PowerSploit / PowerView / offensive PowerShell cmdlet</description>
+    <group>attack,execution,discovery,</group>
+  </rule>
+
+  <rule id="100811" level="13">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(IEX\s*\(|Invoke-Expression|FromBase64String|System\.Reflection\.Assembly)</field>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1027</id>
+    </mitre>
+    <description>GOAD: In-memory PowerShell execution / deobfuscation</description>
+    <group>attack,execution,defense_evasion,</group>
+  </rule>
+
+  <!-- T1047 / T1021.006 WMI + WinRM abuse -->
+  <rule id="100820" level="11">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(wmic.*process\s+call\s+create|Invoke-WmiMethod|Get-WmiObject.*Win32_Process)</field>
+    <mitre>
+      <id>T1047</id>
+    </mitre>
+    <description>GOAD: WMI process creation</description>
+    <group>attack,execution,lateral_movement,</group>
+  </rule>
+
+  <!-- T1021.002 admin shares / copy to ADMIN$ -->
+  <rule id="100821" level="10">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(\\\\[^\\]+\\(ADMIN\$|C\$|IPC\$)|net\s+use\s+\\\\)</field>
+    <mitre>
+      <id>T1021.002</id>
+    </mitre>
+    <description>GOAD: Admin/hidden share access from command line</description>
+    <group>attack,lateral_movement,</group>
+  </rule>
+
+  <!-- T1569.002 service install (PsExec style) -->
+  <rule id="100822" level="12">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(sc(\.exe)?\s+(create|config)|psexec|paexec|smbexec)</field>
+    <mitre>
+      <id>T1569.002</id>
+    </mitre>
+    <description>GOAD: Service creation or PsExec-like execution</description>
+    <group>attack,execution,persistence,</group>
+  </rule>
+
+  <!-- T1053 scheduled task persistence -->
+  <rule id="100823" level="10">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(schtasks\s+/create|Register-ScheduledTask|New-ScheduledTask)</field>
+    <mitre>
+      <id>T1053.005</id>
+    </mitre>
+    <description>GOAD: Scheduled task created from command line</description>
+    <group>attack,persistence,</group>
+  </rule>
+
+  <!-- T1112 / T1562 defender / logging tamper -->
+  <rule id="100830" level="14">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(wevtutil\s+(cl|clear-log)|Remove-EventLog|Clear-EventLog)</field>
+    <mitre>
+      <id>T1070.001</id>
+    </mitre>
+    <description>GOAD: Event log clear attempted</description>
+    <group>attack,defense_evasion,</group>
+  </rule>
+
+  <rule id="100831" level="14">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(Set-MpPreference|MpCmdRun|Add-MpPreference\s+-Exclusion|TamperProtection)</field>
+    <mitre>
+      <id>T1562.001</id>
+    </mitre>
+    <description>GOAD: Defender preference or exclusion change</description>
+    <group>attack,defense_evasion,</group>
+  </rule>
+
+  <!-- T1550.002 ntlm / token -->
+  <rule id="100840" level="12">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(sekurlsa::pth|rubeus(\.exe)?\s+(ptt|asktgt|s4u|kerberoast)|klist\s+purge)</field>
+    <mitre>
+      <id>T1550.002</id>
+      <id>T1550.003</id>
+    </mitre>
+    <description>GOAD: Pass-the-hash / pass-the-ticket tooling</description>
+    <group>attack,lateral_movement,credential_access,</group>
+  </rule>
+
+  <!-- T1003.003 ntdsutil / ntds.dit -->
+  <rule id="100841" level="15">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(ntdsutil|ntds\.dit|vssadmin.*shadow|diskshadow)</field>
+    <mitre>
+      <id>T1003.003</id>
+    </mitre>
+    <description>GOAD: NTDS.dit / VSS credential dump activity</description>
+    <group>attack,credential_access,</group>
+  </rule>
+
+  <!-- T1046 port scan from windows (nmap / rustscan) -->
+  <rule id="100850" level="8">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.image" type="pcre2">(?i)(nmap|rustscan|masscan|naabu)\.exe$</field>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+    <description>GOAD: Network scanner executed on Windows host</description>
+    <group>attack,discovery,</group>
+  </rule>
+
+  <!-- Living off the land: certutil / bitsadmin download -->
+  <rule id="100851" level="12">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(certutil.*(-urlcache|-decode)|bitsadmin.*/transfer|curl\.exe\s+-o|wget\.exe)</field>
+    <mitre>
+      <id>T1105</id>
+      <id>T1140</id>
+    </mitre>
+    <description>GOAD: LOLBin file download or decode</description>
+    <group>attack,command_and_control,defense_evasion,</group>
+  </rule>
+
+</group>

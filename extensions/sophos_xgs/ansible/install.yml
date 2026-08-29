@@ -1,0 +1,26 @@
+---
+- import_playbook: "../../../ansible/data.yml"
+  vars:
+    data_path: "../ad/{{domain_name}}/data/"
+  tags: 'data'
+
+- name: Merge Sophos XGS extension config
+  hosts: domain:extensions
+  connection: local
+  vars_files:
+    - "../data/config.json"
+  tasks:
+    - name: merge lab variable with local config
+      set_fact:
+        lab: "{{ lab | combine(lab_extension, recursive=True) }}"
+
+- name: Apply Sophos XGS Home lab configuration via API
+  hosts: sophos_xgs_firewall
+  connection: local
+  gather_facts: no
+  roles:
+    - { role: 'sophos_xgs_config', tags: 'sophos_xgs' }
+  vars:
+    sophos_api_host: "{{ hostvars['sophos_xgs']['ansible_host'] }}"
+    sophos_admin_password: "{{ lab.hosts['sophos_xgs'].local_admin_password | default(lookup('env', 'SOPHOS_ADMIN_PASSWORD') | default('', true), true) }}"
+    sophos_lab_network: "{{ hostvars['sophos_xgs']['ansible_host'] | regex_replace('\\.\\d+$', '.0') }}"

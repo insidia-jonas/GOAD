@@ -1,0 +1,56 @@
+IF DB_ID('Kingdoms') IS NULL CREATE DATABASE Kingdoms;
+IF DB_ID('NightWatch') IS NULL CREATE DATABASE NightWatch;
+IF DB_ID('FreeCities') IS NULL CREATE DATABASE FreeCities;
+IF DB_ID('Citadel') IS NULL CREATE DATABASE Citadel;
+GO
+
+USE Kingdoms;
+IF OBJECT_ID('dbo.Houses','U') IS NULL
+BEGIN
+  CREATE TABLE dbo.Houses (Id INT IDENTITY PRIMARY KEY, Name NVARCHAR(64), Seat NVARCHAR(64), Gold INT);
+  INSERT INTO dbo.Houses (Name, Seat, Gold) VALUES
+    (N'Stark', N'Winterfell', 12000),
+    (N'Lannister', N'Casterly Rock', 90000),
+    (N'Baratheon', N'Storms End', 18000),
+    (N'Targaryen', N'Dragonstone', 4000);
+END
+IF OBJECT_ID('dbo.AppSecrets','U') IS NULL
+BEGIN
+  CREATE TABLE dbo.AppSecrets (Id INT IDENTITY PRIMARY KEY, SystemName NVARCHAR(64), Username NVARCHAR(128), Password NVARCHAR(128), Note NVARCHAR(256));
+  INSERT INTO dbo.AppSecrets (SystemName, Username, Password, Note) VALUES
+    (N'castelblack-sa', N'sa', N'{{ mssql_labdata_castelblack_sa | replace("'", "''") }}', N'local sa'),
+    (N'braavos-link', N'sa', N'{{ mssql_labdata_braavos_sa | replace("'", "''") }}', N'linked server BRAAVOS'),
+    (N'sql_svc', N'NORTH\sql_svc', N'{{ mssql_labdata_sql_svc_password | replace("'", "''") }}', N'service account');
+END
+GO
+
+USE NightWatch;
+IF OBJECT_ID('dbo.Rangers','U') IS NULL
+BEGIN
+  CREATE TABLE dbo.Rangers (Id INT IDENTITY PRIMARY KEY, Name NVARCHAR(64), Post NVARCHAR(64), Note NVARCHAR(128));
+  INSERT INTO dbo.Rangers (Name, Post, Note) VALUES
+    (N'Jon Snow', N'Castle Black', N'Lord Commander'),
+    (N'Samwell Tarly', N'Castle Black', N'Steward'),
+    (N'Jeor Mormont', N'Castle Black', N'Old Bear');
+END
+GO
+
+USE FreeCities;
+IF OBJECT_ID('dbo.Contracts','U') IS NULL
+BEGIN
+  CREATE TABLE dbo.Contracts (Id INT IDENTITY PRIMARY KEY, City NVARCHAR(64), Counterpart NVARCHAR(64), Terms NVARCHAR(256));
+  INSERT INTO dbo.Contracts (City, Counterpart, Terms) VALUES
+    (N'Braavos', N'Iron Bank', N'fleet credit - see sa on braavos'),
+    (N'Meereen', N'Unsullied', N'see Grey Worm for the roster');
+END
+GO
+
+USE Citadel;
+IF OBJECT_ID('dbo.ScrollIndex','U') IS NULL
+BEGIN
+  CREATE TABLE dbo.ScrollIndex (Id INT IDENTITY PRIMARY KEY, Title NVARCHAR(128), Location NVARCHAR(256));
+  INSERT INTO dbo.ScrollIndex (Title, Location) VALUES
+    (N'SQL passwords (parchment copy)', N'\\oldtown\Archives\Citadel\legacy_sql_passwords.txt'),
+    (N'Connection strings', N'\\oldtown\IT\SQL\web.config');
+END
+GO

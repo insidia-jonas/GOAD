@@ -1,0 +1,2 @@
+# Sample databases planted after MSSQL is up (lab-only, intentional creds)
+mssql_labdata_enabled: true

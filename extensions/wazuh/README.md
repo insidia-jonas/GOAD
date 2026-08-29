@@ -1,7 +1,7 @@
 # WAZUH extension
 
 - Extension Name: wazuh
-- Description: Add wazuh free EDR server and agent on all the domain computers + soc fortress rules (https://github.com/socfortress/Wazuh-Rules)
+- Description: Add Wazuh 4.14.x SIEM/EDR plus SOCFortress, Sigma and GOAD custom rules. Agents follow each host `edr` list in config.json.
 - Machine name : {{lab_name}}-WAZUH
 - Compatible with labs : *
 

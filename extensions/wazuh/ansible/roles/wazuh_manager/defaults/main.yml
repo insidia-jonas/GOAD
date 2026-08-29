@@ -1,5 +1,9 @@
 # Wazuh installation script URL
-wazuh_install_script_url: "https://packages.wazuh.com/4.8/wazuh-install.sh"
+# 4.14.x is the current 4.x line (Windows Server 2025 SCA, latest ruleset)
+wazuh_version: "4.14"
+wazuh_install_script_url: "https://packages.wazuh.com/4.14/wazuh-install.sh"
 
-# SOCFORTRESS Wazuh rules script URL
+wazuh_install_socfortress_rules: true
+wazuh_install_sigma_rules: true
+
 socfortress_rules_script_url: "https://raw.githubusercontent.com/socfortress/Wazuh-Rules/main/wazuh_socfortress_rules.sh"

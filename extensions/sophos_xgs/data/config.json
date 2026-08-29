@@ -1,0 +1,12 @@
+{
+    "lab_extension": {
+        "hosts": {
+            "sophos_xgs": {
+                "hostname": "xgs",
+                "type": "firewall",
+                "os": "sfos",
+                "local_admin_password": ""
+            }
+        }
+    }
+}

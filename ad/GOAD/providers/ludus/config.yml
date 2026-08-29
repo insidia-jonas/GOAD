@@ -51,7 +51,7 @@ ludus:
     template: win2012r2-server-x64-template
     vlan: 10
     ip_last_octet: 24
-    ram_gb: 2
+    ram_gb: 4
     cpus: 2
     windows:
       sysprep: true

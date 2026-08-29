@@ -1,5 +1,6 @@
 # Wazuh agent installation package URL
-# Version 4.10+ required for Windows Server 2025 SCA support
-wazuh_agent_install_package: "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.10.2-1.msi"
+# Must not exceed the manager version (4.14.x)
+wazuh_agent_version: "4.14.7-1"
+wazuh_agent_install_package: "https://packages.wazuh.com/4.x/windows/wazuh-agent-{{ wazuh_agent_version }}.msi"
 
 wazuh_install_location: "c:\\tmp"

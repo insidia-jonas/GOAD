@@ -1,0 +1,6 @@
+# Handlers for Wazuh Manager role
+
+- name: Restart Wazuh Manager
+  service:
+    name: wazuh-manager
+    state: restarted

@@ -1,0 +1,34 @@
+---
+- name: Resolve lab SQL passwords from config (not hardcoded in git)
+  set_fact:
+    mssql_labdata_castelblack_sa: "{{ lab.hosts['srv02'].mssql.sa_password if (lab.hosts['srv02'] is defined and lab.hosts['srv02'].mssql is defined) else (sa_password | default('')) }}"
+    mssql_labdata_braavos_sa: "{{ lab.hosts['srv03'].mssql.sa_password if (lab.hosts['srv03'] is defined and lab.hosts['srv03'].mssql is defined) else '' }}"
+    mssql_labdata_sql_svc_password: "{{ SQLSVCPASSWORD | default('') }}"
+
+- name: Create setup directory for SQL seed script
+  win_file:
+    path: C:\setup\mssql
+    state: directory
+
+- name: Render GOAD sample-database script
+  win_template:
+    src: seed_lab_databases.sql.j2
+    dest: C:\setup\mssql\seed_lab_databases.sql
+  no_log: true
+
+- name: Seed GOAD sample databases
+  win_shell: SqlCmd {{ connection_type }} -b -i C:\setup\mssql\seed_lab_databases.sql
+  become: yes
+  become_method: runas
+  become_user: "{{ SQLSVCACCOUNT }}"
+  vars:
+    ansible_become_pass: "{{ SQLSVCPASSWORD }}"
+  when: mssql_labdata_enabled | bool
+  register: mssql_labdata_result
+  failed_when: false
+  no_log: true
+
+- name: Show seed result
+  debug:
+    msg: "{{ mssql_labdata_result.stdout | default(mssql_labdata_result.stderr) | default('seed finished') }}"
+  when: mssql_labdata_result is defined

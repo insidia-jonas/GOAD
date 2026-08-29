@@ -1,0 +1,11 @@
+# Requires a local Ludus template built from the official SFOS Home ISO.
+# Template name must match: sophos-xgs-home-template
+# See extensions/sophos_xgs/README.md
+- vm_name: "{{ range_id }}-GOAD-XGS"
+  hostname: "{{ range_id }}-XGS"
+  template: sophos-xgs-home-template
+  vlan: 10
+  ip_last_octet: 53
+  ram_gb: 4
+  cpus: 2
+  linux: true

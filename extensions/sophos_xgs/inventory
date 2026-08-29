@@ -1,0 +1,8 @@
+[default]
+sophos_xgs ansible_host={{ip_range}}.53 dict_key=sophos_xgs ansible_connection=local
+
+[extensions]
+sophos_xgs
+
+[sophos_xgs_firewall]
+sophos_xgs

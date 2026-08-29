@@ -1,0 +1,14 @@
+{
+    "name": "sophos_xgs",
+    "description": "Add a Sophos Firewall XGS (SFOS Home license) with a GOAD API/XML configuration template",
+    "machines": [
+        "sophos_xgs"
+    ],
+    "compatibility": [
+        "GOAD",
+        "GOAD-Light",
+        "NHA",
+        "SCCM"
+    ],
+    "impact": "adds a Sophos XGS VM on .53 (LAN). You must supply the SFOS ISO and a Home license. Ansible applies firewall objects and rules via the API."
+}

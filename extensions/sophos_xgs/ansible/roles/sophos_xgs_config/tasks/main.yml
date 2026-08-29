@@ -1,0 +1,89 @@
+---
+- name: Require an admin password supplied at runtime
+  ansible.builtin.fail:
+    msg: >
+      sophos_admin_password is empty. Set it via extra-var sophos_admin_password
+      or the SOPHOS_ADMIN_PASSWORD environment variable (the password you chose
+      during SFOS first-boot). Do not commit that value.
+  when: (sophos_admin_password | default('') | length) == 0
+
+- name: Derive lab address prefix (192.168.56.0 -> 192.168.56)
+  ansible.builtin.set_fact:
+    sophos_lab_prefix: "{{ sophos_lab_network.split('.')[0:3] | join('.') }}"
+
+- name: Wait for Sophos XGS web/API port
+  ansible.builtin.wait_for:
+    host: "{{ sophos_api_host }}"
+    port: "{{ sophos_api_port }}"
+    delay: 5
+    timeout: "{{ sophos_wait_timeout }}"
+  register: sophos_api_port_wait
+  ignore_errors: yes
+
+- name: Abort with setup instructions when the firewall API is not reachable
+  ansible.builtin.fail:
+    msg: |
+      Sophos XGS API is not reachable at https://{{ sophos_api_host }}:{{ sophos_api_port }}/
+      Complete first-boot first (see extensions/sophos_xgs/README.md):
+        1. Install SFOS from the official Home ISO
+        2. Apply the Sophos Firewall Home license
+        3. Set admin password to {{ sophos_admin_password }} (or override sophos_admin_password)
+        4. Put Port2 / LAN on {{ sophos_api_host }} and enable the API (or allow HTTPS from the lab)
+        5. Re-run: install_extension sophos_xgs
+  when: sophos_api_port_wait.failed | default(false)
+
+- name: Render API request documents
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: "/tmp/sophos_xgs_{{ item | basename | regex_replace('\\.j2$', '') }}"
+    mode: '0600'
+  loop:
+    - api/01_login_check.xml.j2
+    - api/02_ip_hosts.xml.j2
+    - api/03_local_service_acl.xml.j2
+    - api/04_firewall_rules.xml.j2
+    - api/05_admin_api.xml.j2
+  delegate_to: localhost
+
+- name: Render import-export Entities.xml template (manual UI import fallback)
+  ansible.builtin.template:
+    src: import/Entities.xml.j2
+    dest: /tmp/sophos_xgs_Entities.xml
+    mode: '0644'
+  delegate_to: localhost
+
+- name: Apply Sophos API configuration payloads
+  ansible.builtin.uri:
+    url: "https://{{ sophos_api_host }}:{{ sophos_api_port }}/webconsole/APIController"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      reqxml: "{{ lookup('file', '/tmp/sophos_xgs_' + (item | basename | regex_replace('\\.j2$', ''))) }}"
+    validate_certs: "{{ sophos_api_verify }}"
+    timeout: "{{ sophos_api_timeout }}"
+    return_content: yes
+    status_code: [200, 201, 202]
+  loop:
+    - api/01_login_check.xml.j2
+    - api/02_ip_hosts.xml.j2
+    - api/03_local_service_acl.xml.j2
+    - api/04_firewall_rules.xml.j2
+    - api/05_admin_api.xml.j2
+  register: sophos_api_results
+  ignore_errors: yes
+  delegate_to: localhost
+
+- name: Show API responses
+  ansible.builtin.debug:
+    msg: "{{ item.item }} -> HTTP {{ item.status | default('n/a') }}"
+  loop: "{{ sophos_api_results.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item | default('payload') }}"
+
+- name: Reminder — Home license and Entities.xml
+  ansible.builtin.debug:
+    msg: |
+      Sophos XGS API pass finished.
+      Manual import fallback was written to /tmp/sophos_xgs_Entities.xml
+      (Backup & Firmware > Import on the SFOS UI).
+      Confirm the Home license is active under Administration > Licensing.

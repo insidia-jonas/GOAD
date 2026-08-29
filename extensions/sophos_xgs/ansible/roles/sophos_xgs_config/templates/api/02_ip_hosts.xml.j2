@@ -1,0 +1,75 @@
+<Request>
+  <Login>
+    <Username>{{ sophos_api_user }}</Username>
+    <Password>{{ sophos_admin_password }}</Password>
+  </Login>
+  <Set operation="add">
+    <IPHost>
+      <Name>{{ sophos_object_prefix }}-LAB-NET</Name>
+      <IPFamily>IPv4</IPFamily>
+      <HostType>Network</HostType>
+      <IPAddress>{{ sophos_lab_network }}</IPAddress>
+      <Subnet>{{ sophos_lab_netmask }}</Subnet>
+    </IPHost>
+    <IPHost>
+      <Name>{{ sophos_object_prefix }}-DC01</Name>
+      <IPFamily>IPv4</IPFamily>
+      <HostType>IP</HostType>
+      <IPAddress>{{ sophos_lab_prefix }}.10</IPAddress>
+    </IPHost>
+    <IPHost>
+      <Name>{{ sophos_object_prefix }}-DC02</Name>
+      <IPFamily>IPv4</IPFamily>
+      <HostType>IP</HostType>
+      <IPAddress>{{ sophos_lab_prefix }}.11</IPAddress>
+    </IPHost>
+    <IPHost>
+      <Name>{{ sophos_object_prefix }}-DC03</Name>
+      <IPFamily>IPv4</IPFamily>
+      <HostType>IP</HostType>
+      <IPAddress>{{ sophos_lab_prefix }}.12</IPAddress>
+    </IPHost>
+    <IPHost>
+      <Name>{{ sophos_object_prefix }}-SRV02</Name>
+      <IPFamily>IPv4</IPFamily>
+      <HostType>IP</HostType>
+      <IPAddress>{{ sophos_lab_prefix }}.22</IPAddress>
+    </IPHost>
+    <IPHost>
+      <Name>{{ sophos_object_prefix }}-SRV03</Name>
+      <IPFamily>IPv4</IPFamily>
+      <HostType>IP</HostType>
+      <IPAddress>{{ sophos_lab_prefix }}.23</IPAddress>
+    </IPHost>
+    <IPHost>
+      <Name>{{ sophos_object_prefix }}-SRV04</Name>
+      <IPFamily>IPv4</IPFamily>
+      <HostType>IP</HostType>
+      <IPAddress>{{ sophos_lab_prefix }}.24</IPAddress>
+    </IPHost>
+    <IPHost>
+      <Name>{{ sophos_object_prefix }}-WAZUH</Name>
+      <IPFamily>IPv4</IPFamily>
+      <HostType>IP</HostType>
+      <IPAddress>{{ sophos_lab_prefix }}.51</IPAddress>
+    </IPHost>
+    <IPHost>
+      <Name>{{ sophos_object_prefix }}-KALI</Name>
+      <IPFamily>IPv4</IPFamily>
+      <HostType>IP</HostType>
+      <IPAddress>{{ sophos_lab_prefix }}.50</IPAddress>
+    </IPHost>
+    <IPHostGroup>
+      <Name>{{ sophos_object_prefix }}-WINDOWS</Name>
+      <IPFamily>IPv4</IPFamily>
+      <HostList>
+        <Host>{{ sophos_object_prefix }}-DC01</Host>
+        <Host>{{ sophos_object_prefix }}-DC02</Host>
+        <Host>{{ sophos_object_prefix }}-DC03</Host>
+        <Host>{{ sophos_object_prefix }}-SRV02</Host>
+        <Host>{{ sophos_object_prefix }}-SRV03</Host>
+        <Host>{{ sophos_object_prefix }}-SRV04</Host>
+      </HostList>
+    </IPHostGroup>
+  </Set>
+</Request>

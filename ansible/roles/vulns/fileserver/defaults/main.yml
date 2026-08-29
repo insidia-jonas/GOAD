@@ -1,0 +1,6 @@
+# Simulated corporate file server
+fileserver_root: "C:\\FileServer"
+fileserver_install_windows_role: true
+fileserver_dummy_files_per_share: 40
+fileserver_plant_sql_credentials: true
+fileserver_shares: {}

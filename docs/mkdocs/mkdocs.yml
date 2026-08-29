@@ -33,6 +33,8 @@ nav:
     - ws01: extensions/ws01.md
     - elk: extensions/elk.md
     - wazuh: extensions/wazuh.md
+    - edr: extensions/edr.md
+    - sophos_xgs: extensions/sophos_xgs.md
   - 💻 Usage: 
     - index : usage/index.md
     - Arguments: usage/goad_args.md

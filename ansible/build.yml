@@ -12,6 +12,13 @@
     - { role: 'settings/keyboard', tags: 'keyboard', layouts: "{{keyboard_layouts}}" }
     - { role: 'settings/disable_eval_shutdown', tags: 'disable_eval_shutdown' }
 
+# Commando / extra Windows attackers are not in [domain] but still run Eval SKUs
+- name: Disable evaluation shutdown on remaining Windows hosts
+  hosts: commando
+  ignore_unreachable: yes
+  roles:
+    - { role: 'settings/disable_eval_shutdown', tags: 'disable_eval_shutdown' }
+
 # do not add srv with no update -> generate error on iis install
 - name: build all no update
   hosts: no_update
