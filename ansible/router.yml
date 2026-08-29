@@ -1,0 +1,7 @@
+---
+# Debian lab router / perimeter (.53). Skipped when sophos_xgs replaced it.
+- name: Configure the Debian lab router
+  hosts: lab_router
+  become: yes
+  roles:
+    - { role: 'linux/lab_router', tags: 'lab_router' }

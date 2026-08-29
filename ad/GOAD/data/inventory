@@ -219,6 +219,12 @@ commando
 [file_server]
 srv04
 
+; Debian lab router / perimeter on .53 (provider inventory).
+; Empty when sophos_xgs replaces it — Sophos then owns [perimeter].
+[lab_router]
+
+[perimeter]
+
 ; Per-host EDR is driven by config.json "edr" lists
 ; (wazuh/sysmon/defender/sophos/elastic/bitdefender/none).
 ; Inventory groups below are optional overrides / documentation.

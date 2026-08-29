@@ -60,6 +60,8 @@
 - [X] Sophos XGS Home extension (API + Entities.xml template)
 - [X] Elastic Security 8.x extension (`elastic_edr`) with self-managed 30-day trial + Fleet + Elastic Defend
 - [X] Bitdefender GravityZone BEST as a selectable EDR (BYO trial package)
+- [X] Debian lab router on `.53`; `sophos_xgs` is configurable and replaces that router when enabled
+- [X] Red-team feature / configuration handbook (`docs/mkdocs/docs/labs/redteam.md`)
 
 ## v3
 - [X] aws support

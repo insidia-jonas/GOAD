@@ -58,6 +58,8 @@ GOAD-Mini:
 
 default:
   - build.yml
+  # Debian perimeter (.53); no-op when sophos_xgs replaced the router
+  - router.yml
   - ad-servers.yml
   - ad-parent_domain.yml
   # Wait after the child domain creation before adding servers

@@ -6,3 +6,8 @@ sophos_xgs
 
 [sophos_xgs_firewall]
 sophos_xgs
+
+; Takes over the lab perimeter from the Debian router
+[perimeter]
+sophos_xgs
+

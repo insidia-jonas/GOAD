@@ -14,6 +14,9 @@ Game Of Active Directory is a free pentest active directory LAB(s) project (1).
 
 1.  GOAD is free if you use your own computer, obviously we will not pay your electricity bill and your cloud provider invoice ;)
 
+This fork also builds a **red-team lab** (Wazuh, selectable EDR, file server,
+Debian router or Sophos XGS). See [red-team lab](labs/redteam.md).
+
 The purpose of this tool is to give pentesters a vulnerable Active directory environment ready to use to practice usual attack techniques.
 The idea behind this project is to give you an environment where you can try and train your pentest skills without having the pain to build all by yourself.
 This repository was build for pentest practice :slight_smile:

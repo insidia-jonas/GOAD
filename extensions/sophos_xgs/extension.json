@@ -10,5 +10,5 @@
         "NHA",
         "SCCM"
     ],
-    "impact": "adds a Sophos XGS VM on .53 (LAN). You must supply the SFOS ISO and a Home license. Ansible applies firewall objects and rules via the API."
+    "impact": "replaces the Debian lab router on .53 with Sophos XGS. You must supply the SFOS ISO and a Home license. Ansible applies firewall objects and rules via the API."
 }

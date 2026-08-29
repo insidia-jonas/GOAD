@@ -1,0 +1,36 @@
+---
+- name: Enable IPv4 forwarding
+  ansible.builtin.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    sysctl_set: true
+    reload: true
+  when: lab_router_forward | bool
+
+- name: Persist iptables NAT (masquerade default-route interface)
+  ansible.builtin.apt:
+    name:
+      - iptables
+      - iptables-persistent
+    state: present
+    update_cache: true
+  when: lab_router_masquerade | bool
+
+- name: Detect default-route interface
+  ansible.builtin.command: ip -4 route show default
+  register: lab_router_default_route
+  changed_when: false
+  when: lab_router_masquerade | bool
+
+- name: Apply MASQUERADE on the WAN / default-route NIC
+  ansible.builtin.iptables:
+    table: nat
+    chain: POSTROUTING
+    out_interface: "{{ lab_router_default_route.stdout.split()[4] }}"
+    jump: MASQUERADE
+  when:
+    - lab_router_masquerade | bool
+    - lab_router_default_route.stdout is defined
+    - lab_router_default_route.stdout | length > 0
+  ignore_errors: true

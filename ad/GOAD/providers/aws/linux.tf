@@ -16,3 +16,14 @@
   password           = "W@zuhS3rv3r!"
   size               = "t2.xlarge"
 }
+{% if not replace_debian_router|default(false) %}
+"router" = {
+  name               = "router"
+  linux_sku          = "22_04-lts-gen2"
+  linux_version      = "latest"
+  ami                = "ami-00c71bd4d220aa22a"
+  private_ip_address = "{{ip_range}}.53"
+  password           = "{{ lab_name }}-router"
+  size               = "t2.small"
+}
+{% endif %}

@@ -86,6 +86,29 @@ class LabInstance:
     def is_ludus(self):
         return self.provider_name == LUDUS
 
+    def sophos_replaces_debian_router(self):
+        """True when sophos_xgs is enabled and configured to take over the lab perimeter."""
+        if 'sophos_xgs' not in (self.extensions or []):
+            return False
+        cfg = os.path.join(GoadPath.get_extension_path('sophos_xgs'), 'data', 'config.json')
+        try:
+            with open(cfg, 'r', encoding='utf-8') as handle:
+                info = json.load(handle)
+            return bool(info.get('lab_extension', {}).get('replace_debian_router', True))
+        except (OSError, json.JSONDecodeError, TypeError, AttributeError):
+            return True
+
+    def _jinja_vars(self, **extra):
+        data = {
+            'lab_name': self.lab_name,
+            'ip_range': self.ip_range,
+            'provider_name': self.provider_name,
+            'extensions': list(self.extensions or []),
+            'replace_debian_router': self.sophos_replaces_debian_router(),
+        }
+        data.update(extra)
+        return data
+
     def enable_extension(self, extension_name):
         if extension_name not in self.extensions:
             self.extensions.append(extension_name)
@@ -119,8 +142,7 @@ class LabInstance:
         lab_environment = Environment(loader=FileSystemLoader(GoadPath.get_lab_provider_path(self.lab_name, self.provider_name)))
         lab_vagrantfile_template = lab_environment.get_template("Vagrantfile")
         lab_vagrantfile_content = lab_vagrantfile_template.render(
-            lab_name=self.lab_name,
-            ip_range=self.ip_range
+            **self._jinja_vars()
         )
 
         # load lab extensions
@@ -131,8 +153,7 @@ class LabInstance:
                 extension_environment = Environment(loader=FileSystemLoader(extension_provider_folder))
                 lab_extension_vagrantfile_template = extension_environment.get_template("Vagrantfile")
                 lab_extensions_content += lab_extension_vagrantfile_template.render(
-                    lab_name=self.lab_name,
-                    ip_range=self.ip_range
+                    **self._jinja_vars()
                 ) + "\n"
 
         # load extensions Vagrantfile into instance
@@ -187,9 +208,7 @@ class LabInstance:
         lab_environment = Environment(loader=FileSystemLoader(GoadPath.get_lab_provider_path(self.lab_name, self.provider_name)))
         lab_ludus_config_file_template = lab_environment.get_template("config.yml")
         lab_ludus_config_file_content = lab_ludus_config_file_template.render(
-            lab_name=self.lab_name,
-            range_id="{{ range_id }}",
-            ip_range=self.ip_range
+            **self._jinja_vars(range_id="{{ range_id }}")
         )
 
         # load lab extensions
@@ -199,9 +218,7 @@ class LabInstance:
             extension_environment = Environment(loader=FileSystemLoader(extension_provider_folder))
             lab_extension_ludus_config_file_template = extension_environment.get_template("config.yml")
             lab_extensions_ludus_config_file_content += lab_extension_ludus_config_file_template.render(
-                lab_name=self.lab_name,
-                range_id="{{ range_id }}",
-                ip_range=self.ip_range
+                **self._jinja_vars(range_id="{{ range_id }}")
             ) + "\n"
 
         # load lab + extension into instance config
@@ -225,7 +242,7 @@ class LabInstance:
         lab_environment = Environment(loader=FileSystemLoader(GoadPath.get_lab_provider_path(self.lab_name, self.provider_name)))
         lab_windows_template = lab_environment.get_template("windows.tf")
         windows_vm = lab_windows_template.render(
-            ip_range=self.ip_range
+            **self._jinja_vars()
         )
 
         linux_vm = ''
@@ -233,7 +250,7 @@ class LabInstance:
             lab_environment = Environment(loader=FileSystemLoader(GoadPath.get_lab_provider_path(self.lab_name, self.provider_name)))
             lab_windows_template = lab_environment.get_template("linux.tf")
             linux_vm = lab_windows_template.render(
-                ip_range=self.ip_range
+                **self._jinja_vars()
             )
 
         # load lab extensions content
@@ -243,14 +260,12 @@ class LabInstance:
             if os.path.isfile(extension_provider_folder + sep + 'linux.tf'):
                 lab_extension_linux_template = extension_environment.get_template("linux.tf")
                 linux_vm += "\n" + lab_extension_linux_template.render(
-                    lab_name=self.lab_name,
-                    ip_range=self.ip_range
+                    **self._jinja_vars()
                 ) + "\n"
             if os.path.isfile(extension_provider_folder + sep + 'windows.tf'):
                 lab_extension_windows_template = extension_environment.get_template("windows.tf")
                 windows_vm += "\n" + lab_extension_windows_template.render(
-                    lab_name=self.lab_name,
-                    ip_range=self.ip_range
+                    **self._jinja_vars()
                 ) + "\n"
 
         # load template folder
@@ -300,9 +315,7 @@ class LabInstance:
         # create inventory template
         inventory_template = environment.get_template(inventory_file)
         instance_inventory_content = inventory_template.render(
-            lab_name=self.lab_name,
-            ip_range=self.ip_range,
-            provider_name=self.provider_name
+            **self._jinja_vars()
         )
         # create instance inventory file
         instance_inventory_file = self.instance_path + sep + inventory_file
@@ -318,9 +331,7 @@ class LabInstance:
         # create inventory template
         inventory_template = environment.get_template("inventory")
         instance_inventory_content = inventory_template.render(
-            lab_name=self.lab_name,
-            ip_range=self.ip_range,
-            provider_name=self.provider_name
+            **self._jinja_vars()
         )
         # create instance inventory file
         instance_inventory_file = self.instance_path + sep + 'inventory'
@@ -336,9 +347,7 @@ class LabInstance:
             extension_environment = Environment(loader=FileSystemLoader(extension_folder))
             instance_extension_inventory_template = extension_environment.get_template("inventory")
             instance_extension_inventory_content = instance_extension_inventory_template.render(
-                lab_name=self.lab_name,
-                ip_range=self.ip_range,
-                provider_name=self.provider_name
+                **self._jinja_vars()
             )
 
             # create instance extension inventory file
