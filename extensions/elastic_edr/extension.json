@@ -1,0 +1,11 @@
+{
+    "name": "elastic_edr",
+    "description": "Add self-managed Elastic Security 8.x (30-day trial) with Fleet and Elastic Defend",
+    "machines": [
+        "elastic"
+    ],
+    "compatibility": [
+        "*"
+    ],
+    "impact": "adds an Elastic Security VM on .54 (8 GB RAM). Starts a 30-day trial on the VM. Hosts with edr=elastic enroll via Fleet. Do not run together with the old elk extension if you are short on RAM."
+}

@@ -1,0 +1,171 @@
+---
+- name: Generate or reuse Kibana encryption keys
+  ansible.builtin.shell: |
+    set -euo pipefail
+    KEYS="{{ elastic_data_dir }}/kibana_keys.env"
+    if [ -s "$KEYS" ]; then
+      exit 0
+    fi
+    umask 077
+    printf 'ESO=%s\nSEC=%s\nREP=%s\n' \
+      "$(openssl rand -hex 32)" \
+      "$(openssl rand -hex 32)" \
+      "$(openssl rand -hex 32)" > "$KEYS"
+    chmod 600 "$KEYS"
+  args:
+    executable: /bin/bash
+  no_log: true
+
+- name: Parse Kibana encryption keys
+  ansible.builtin.command: python3 -c "from pathlib import Path; vals=dict(l.split('=',1) for l in Path('{{ elastic_data_dir }}/kibana_keys.env').read_text().splitlines() if '=' in l); print(vals.get('ESO','')); print(vals.get('SEC','')); print(vals.get('REP',''))"
+  register: elastic_keys_parsed
+  changed_when: false
+  no_log: true
+
+- name: Store Kibana encryption keys
+  ansible.builtin.set_fact:
+    elastic_eso_key: "{{ elastic_keys_parsed.stdout_lines[0] | default('') }}"
+    elastic_security_key: "{{ elastic_keys_parsed.stdout_lines[1] | default('') }}"
+    elastic_reporting_key: "{{ elastic_keys_parsed.stdout_lines[2] | default('') }}"
+  no_log: true
+
+- name: Copy Elasticsearch HTTP CA for Kibana
+  ansible.builtin.copy:
+    src: /etc/elasticsearch/certs/http_ca.crt
+    dest: /etc/kibana/http_ca.crt
+    remote_src: true
+    owner: kibana
+    group: kibana
+    mode: "0640"
+
+- name: Render Kibana configuration
+  ansible.builtin.template:
+    src: kibana.yml.j2
+    dest: /etc/kibana/kibana.yml
+    owner: root
+    group: kibana
+    mode: "0640"
+  no_log: true
+  notify: Restart kibana
+
+- name: Enable and start Kibana
+  ansible.builtin.service:
+    name: kibana
+    state: started
+    enabled: true
+
+- name: Flush Kibana handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Kibana API
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ elastic_kibana_port }}/api/status"
+    method: GET
+    status_code: [200]
+  register: kibana_status
+  retries: 60
+  delay: 5
+  until: kibana_status.status == 200
+
+- name: SHA-256 fingerprint of the Elasticsearch HTTP CA
+  ansible.builtin.command: openssl x509 -fingerprint -sha256 -noout -in /etc/elasticsearch/certs/http_ca.crt
+  register: elastic_ca_fp
+  changed_when: false
+
+- name: Normalize CA fingerprint
+  ansible.builtin.set_fact:
+    elastic_ca_fingerprint: "{{ elastic_ca_fp.stdout.split('=')[-1] | regex_replace(':', '') | upper }}"
+
+- name: Install Fleet setup helper
+  ansible.builtin.copy:
+    src: setup_fleet.py
+    dest: "{{ elastic_data_dir }}/setup_fleet.py"
+    mode: "0755"
+
+- name: Configure Fleet, Windows EDR policy and enrollment token
+  ansible.builtin.command: python3 {{ elastic_data_dir }}/setup_fleet.py
+  environment:
+    KIBANA_URL: "http://127.0.0.1:{{ elastic_kibana_port }}"
+    ELASTIC_USER: elastic
+    ELASTIC_PASSWORD: "{{ elastic_user_secret }}"
+    FLEET_URL: "{{ elastic_fleet_url }}"
+    ES_URL: "{{ elastic_es_url }}"
+    ES_CA_FINGERPRINT: "{{ elastic_ca_fingerprint }}"
+    OUTPUT_DIR: "{{ elastic_data_dir }}"
+    ELASTIC_DEFEND_PRESET: "{{ elastic_defend_preset }}"
+    ELASTIC_WINDOWS_POLICY_NAME: "{{ elastic_windows_policy_name }}"
+    ELASTIC_FLEET_POLICY_NAME: "{{ elastic_fleet_policy_name }}"
+    ELASTIC_DEFEND_POLICY_NAME: "{{ elastic_defend_policy_name }}"
+  no_log: true
+  register: elastic_fleet_setup
+
+- name: Require the Windows enrollment token file
+  ansible.builtin.stat:
+    path: "{{ elastic_data_dir }}/windows_enrollment_token"
+  register: elastic_enroll_file
+  failed_when: not elastic_enroll_file.stat.exists
+
+- name: Check whether Fleet Server was already enrolled
+  ansible.builtin.stat:
+    path: "{{ elastic_data_dir }}/.fleet_server_installed"
+  register: elastic_fleet_server_marker
+
+- name: Install Fleet Server (Elastic Agent)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    TOKEN="$(cat {{ elastic_data_dir }}/fleet_server_service_token)"
+    POLICY="$(cat {{ elastic_data_dir }}/fleet_server_policy_id)"
+    elastic-agent install \
+      --non-interactive \
+      --force \
+      --url "{{ elastic_fleet_url }}" \
+      --fleet-server-es "https://127.0.0.1:{{ elastic_es_port }}" \
+      --fleet-server-service-token "$TOKEN" \
+      --fleet-server-policy "$POLICY" \
+      --fleet-server-es-ca /etc/elasticsearch/certs/http_ca.crt \
+      --fleet-server-port "{{ elastic_fleet_port }}"
+  args:
+    executable: /bin/bash
+  no_log: true
+  register: elastic_fleet_server_install
+  failed_when: false
+  when: not elastic_fleet_server_marker.stat.exists
+
+- name: Retry Fleet Server install with insecure ES if needed
+  ansible.builtin.shell: |
+    set -euo pipefail
+    TOKEN="$(cat {{ elastic_data_dir }}/fleet_server_service_token)"
+    POLICY="$(cat {{ elastic_data_dir }}/fleet_server_policy_id)"
+    elastic-agent install \
+      --non-interactive \
+      --force \
+      --url "{{ elastic_fleet_url }}" \
+      --fleet-server-es "https://127.0.0.1:{{ elastic_es_port }}" \
+      --fleet-server-service-token "$TOKEN" \
+      --fleet-server-policy "$POLICY" \
+      --fleet-server-es-insecure \
+      --fleet-server-port "{{ elastic_fleet_port }}"
+  args:
+    executable: /bin/bash
+  no_log: true
+  register: elastic_fleet_server_retry
+  when:
+    - not elastic_fleet_server_marker.stat.exists
+    - elastic_fleet_server_install.rc | default(0) != 0
+
+- name: Mark Fleet Server as enrolled
+  ansible.builtin.file:
+    path: "{{ elastic_data_dir }}/.fleet_server_installed"
+    state: touch
+    mode: "0644"
+  when: >
+    elastic_fleet_server_marker.stat.exists
+    or (elastic_fleet_server_install.rc | default(1) == 0)
+    or (elastic_fleet_server_retry.rc | default(1) == 0)
+
+- name: Wait for Fleet Server port
+  ansible.builtin.wait_for:
+    host: "{{ elastic_advertise_ip }}"
+    port: "{{ elastic_fleet_port | int }}"
+    timeout: 180
+  failed_when: false

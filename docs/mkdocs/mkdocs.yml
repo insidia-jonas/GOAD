@@ -20,6 +20,7 @@ nav:
   - 🏰 Labs:
     - index: labs/index.md
     - GOAD: labs/GOAD.md
+    - Red-team lab: labs/redteam.md
     - GOAD-Light: labs/GOAD-Light.md
     - GOAD-Mini: labs/GOAD-Mini.md
     - NHA: labs/NHA.md
@@ -34,6 +35,7 @@ nav:
     - elk: extensions/elk.md
     - wazuh: extensions/wazuh.md
     - edr: extensions/edr.md
+    - elastic_edr: extensions/elastic_edr.md
     - sophos_xgs: extensions/sophos_xgs.md
   - 💻 Usage: 
     - index : usage/index.md

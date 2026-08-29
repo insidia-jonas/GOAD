@@ -1,0 +1,20 @@
+---
+- name: Create Elastic lab state directory
+  ansible.builtin.file:
+    path: "{{ elastic_data_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install Elasticsearch, Kibana and the Elastic Agent package
+  ansible.builtin.include_tasks: install_stack.yml
+
+- name: Start the 30-day Elastic trial and write local secrets
+  ansible.builtin.include_tasks: credentials.yml
+
+- name: Configure Kibana, Fleet and Elastic Defend
+  ansible.builtin.include_tasks: fleet.yml
+
+- name: Publish Fleet facts for Windows enrollment
+  ansible.builtin.include_tasks: facts.yml

@@ -1,0 +1,21 @@
+# Self-managed Elastic Security 8.x (Elasticsearch + Kibana + Fleet + Elastic Defend).
+# A 30-day trial is started on the VM via POST /_license/start_trial — no license
+# key is committed or redistributed.
+elastic_major: "8"
+elastic_heap_size: "2g"
+elastic_data_dir: /opt/elastic
+elastic_cluster_name: goad-elastic
+elastic_defend_preset: EDRComplete
+elastic_windows_policy_name: GOAD Windows EDR
+elastic_fleet_policy_name: GOAD Fleet Server
+elastic_defend_policy_name: GOAD Elastic Defend
+elastic_kibana_port: 5601
+elastic_es_port: 9200
+elastic_fleet_port: 8220
+# Advertised lab IP (inventory ansible_host). Do not use NAT/default_ipv4.
+elastic_advertise_ip: "{{ ansible_host }}"
+elastic_fleet_url: "https://{{ elastic_advertise_ip }}:{{ elastic_fleet_port }}"
+elastic_es_url: "https://{{ elastic_advertise_ip }}:{{ elastic_es_port }}"
+elastic_kibana_url: "http://{{ elastic_advertise_ip }}:{{ elastic_kibana_port }}"
+elastic_credentials_file: "{{ elastic_data_dir }}/credentials.env"
+elastic_agent_fallback_version: "8.19.10"

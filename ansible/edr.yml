@@ -1,11 +1,13 @@
 ---
 # Per-host EDR selection (config.json -> hosts.<name>.edr)
-# Supported values: wazuh, sysmon, defender, sophos, elastic, none
+# Supported values: wazuh, sysmon, defender, sophos, elastic, bitdefender, none
 #
 # Example:
 #   "ws01": { "edr": ["wazuh", "sysmon", "defender"] }
 #   "srv02": { "edr": ["none"] }
-#   "dc01": { "edr": ["sophos"] }   # needs sophos_endpoint_installer_url
+#   "dc01": { "edr": ["elastic"] }       # needs elastic_edr extension (trial)
+#   "dc02": { "edr": ["bitdefender"] }   # needs GravityZone package id
+#   "dc03": { "edr": ["sophos"] }        # needs sophos_endpoint_installer_url
 
 - import_playbook: data.yml
   vars:
@@ -13,6 +15,8 @@
   tags: 'data'
 
 - import_playbook: wazuh.yml
+
+- import_playbook: elastic.yml
 
 - name: Enable Windows Defender on hosts that selected it as EDR
   hosts: domain
@@ -25,6 +29,11 @@
   hosts: domain
   roles:
     - { role: 'edr/sophos_endpoint', tags: 'edr_sophos', when: "'sophos' in (lab.hosts[dict_key].edr | default([]))" }
+
+- name: Install Bitdefender on hosts that selected bitdefender
+  hosts: domain
+  roles:
+    - { role: 'edr/bitdefender', tags: 'edr_bitdefender', when: "'bitdefender' in (lab.hosts[dict_key].edr | default([]))" }
 
 - name: Install Elastic Agent on hosts that selected elastic
   hosts: domain

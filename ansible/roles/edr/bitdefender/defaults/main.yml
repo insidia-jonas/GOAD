@@ -1,0 +1,19 @@
+# Bitdefender Endpoint Security Tools (GravityZone).
+# The lab does not redistribute Bitdefender binaries or a license.
+# Use a GravityZone trial / test license and pass the package id:
+#   bitdefender_gz_package_id: "<id from setupdownloader_[ID].exe>"
+#   or env BITDEFENDER_GZ_PACKAGE_ID
+# Optional bring-your-own installer (EXE) instead of the public MSI wrapper.
+bitdefender_gz_package_id: ""
+bitdefender_wrapper_url: "https://download.bitdefender.com/SMB/Hydra/release/bst_win/downloaderWrapper/BEST_downloaderWrapper.msi"
+bitdefender_installer_url: ""
+bitdefender_installer_src: ""
+bitdefender_dest_dir: "C:\\setup\\bitdefender"
+bitdefender_wrapper_dest: "C:\\setup\\bitdefender\\BEST_downloaderWrapper.msi"
+bitdefender_installer_dest: "C:\\setup\\bitdefender\\setupdownloader.exe"
+bitdefender_install_args: "/bdparams /silent"
+bitdefender_reboot_if_needed: "0"
+bitdefender_service_names:
+  - EPSecurityService
+  - EPProtectedService
+  - VSSERV

@@ -36,6 +36,16 @@ kali ansible_host={{ip_range}}.50 dict_key=kali ansible_connection=ssh ansible_u
 ; Commando VM - Windows Attacker VM (Windows 11 - needs explicit WinRM settings)
 ; ------------------------------------------------
 commando ansible_host={{ip_range}}.52 dict_key=commando ansible_connection=winrm ansible_winrm_server_cert_validation=ignore ansible_winrm_transport=ntlm ansible_winrm_scheme=http ansible_port=5985
+{% if not replace_debian_router|default(false) %}
+; Debian lab router / perimeter (replaced by sophos_xgs)
+router ansible_host={{ip_range}}.53 dict_key=router ansible_connection=ssh ansible_user=debian ansible_password=debian ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+
+[lab_router]
+router
+
+[perimeter]
+router
+{% endif %}
 
 [all:vars]
 force_dns_server=no

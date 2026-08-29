@@ -1,10 +1,14 @@
 {
     "lab_extension": {
+        "replace_debian_router": true,
         "hosts": {
             "sophos_xgs": {
                 "hostname": "xgs",
                 "type": "firewall",
                 "os": "sfos",
+                "lan_last_octet": 53,
+                "iso_path": "",
+                "license_path": "",
                 "local_admin_password": ""
             }
         }

@@ -1,0 +1,16 @@
+---
+- import_playbook: ../../../ansible/data.yml
+  vars:
+    data_path: "../ad/{{domain_name}}/data/"
+  tags: 'data'
+
+- name: Install Elastic Security (8.x trial, Fleet, Elastic Defend)
+  hosts: elastic_server
+  become: yes
+  roles:
+    - { role: 'elastic_security', tags: 'elastic_security' }
+
+- name: Install Elastic Agent on hosts that selected elastic
+  hosts: domain
+  roles:
+    - { role: 'edr/elastic_agent', tags: 'edr_elastic', when: "'elastic' in (lab.hosts[dict_key].edr | default([]))" }

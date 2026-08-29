@@ -1,4 +1,11 @@
 ---
+- name: Show Sophos extension configuration
+  ansible.builtin.debug:
+    msg: |
+      sophos_xgs replaces the Debian router on .53: {{ sophos_replace_debian_router }}
+      ISO path (BYO, not installed by Ansible): {{ sophos_iso_path if sophos_iso_path else '(unset — build a hypervisor template first)' }}
+      License path (apply in SFOS UI): {{ sophos_license_path if sophos_license_path else '(unset — Administration > Licensing)' }}
+
 - name: Require an admin password supplied at runtime
   ansible.builtin.fail:
     msg: >

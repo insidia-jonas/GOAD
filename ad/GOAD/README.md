@@ -16,7 +16,10 @@ This fork is a full red-team lab (not only the original five VMs):
 - **wazuh** : SIEM 4.14.x
 - **kali** / **commando** : attackers
 - Windows Eval hourly shutdown (WLMS) is disabled on every Windows VM
-- Per-host EDR: `edr` list in `data/config.json`
+- Per-host EDR: `edr` list in `data/config.json` (`wazuh`, `sysmon`, `defender`, `sophos`, `elastic`, `bitdefender`, `none`)
+- Debian router on `.53` (replaced by `sophos_xgs` when that extension is enabled)
+- Optional `elastic_edr` extension: Elastic Security 8.x with a 30-day trial on `.54`
+- Handbook: `docs/mkdocs/docs/labs/redteam.md`
 
 ## domain : north.sevenkingdoms.local
 - **winterfell**     : DC01

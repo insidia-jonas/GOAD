@@ -1,0 +1,3 @@
+# Debian lab perimeter: IPv4 forward + NAT on the default-route NIC.
+lab_router_forward: true
+lab_router_masquerade: true

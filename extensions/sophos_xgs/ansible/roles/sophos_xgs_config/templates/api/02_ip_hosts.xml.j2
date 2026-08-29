@@ -59,6 +59,12 @@
       <HostType>IP</HostType>
       <IPAddress>{{ sophos_lab_prefix }}.50</IPAddress>
     </IPHost>
+    <IPHost>
+      <Name>{{ sophos_object_prefix }}-ELASTIC</Name>
+      <IPFamily>IPv4</IPFamily>
+      <HostType>IP</HostType>
+      <IPAddress>{{ sophos_lab_prefix }}.54</IPAddress>
+    </IPHost>
     <IPHostGroup>
       <Name>{{ sophos_object_prefix }}-WINDOWS</Name>
       <IPFamily>IPv4</IPFamily>

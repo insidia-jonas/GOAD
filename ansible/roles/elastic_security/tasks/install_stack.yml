@@ -1,0 +1,96 @@
+---
+- name: Raise vm.max_map_count for Elasticsearch
+  ansible.builtin.sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+    sysctl_set: true
+    reload: true
+
+- name: Install apt helpers
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - openssl
+      - python3
+    state: present
+    update_cache: true
+
+- name: Add Elastic 8.x APT key
+  ansible.builtin.shell: |
+    set -euo pipefail
+    if [ -s /usr/share/keyrings/elasticsearch-keyring.gpg ]; then
+      exit 0
+    fi
+    curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch \
+      | gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/elasticsearch-keyring.gpg
+
+- name: Add Elastic 8.x APT repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/elastic-8.x.list
+    mode: "0644"
+    content: |
+      deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/{{ elastic_major }}.x/apt stable main
+
+- name: Install Elasticsearch, Kibana and Elastic Agent
+  ansible.builtin.apt:
+    name:
+      - elasticsearch
+      - kibana
+      - elastic-agent
+    state: present
+    update_cache: true
+
+- name: Set single-node bind addresses
+  ansible.builtin.lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - { regexp: '^cluster.name:', line: 'cluster.name: {{ elastic_cluster_name }}' }
+    - { regexp: '^network.host:', line: 'network.host: 0.0.0.0' }
+    - { regexp: '^http.host:', line: 'http.host: 0.0.0.0' }
+    - { regexp: '^http.port:', line: 'http.port: {{ elastic_es_port }}' }
+    - { regexp: '^discovery.type:', line: 'discovery.type: single-node' }
+  notify: Restart elasticsearch
+
+- name: Comment cluster.initial_master_nodes for single-node
+  ansible.builtin.lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    regexp: '^cluster.initial_master_nodes'
+    line: '# cluster.initial_master_nodes: []'
+  notify: Restart elasticsearch
+
+- name: Set Elasticsearch heap
+  ansible.builtin.copy:
+    dest: /etc/elasticsearch/jvm.options.d/heap.options
+    mode: "0644"
+    content: |
+      -Xms{{ elastic_heap_size }}
+      -Xmx{{ elastic_heap_size }}
+  notify: Restart elasticsearch
+
+- name: Enable and start Elasticsearch
+  ansible.builtin.service:
+    name: elasticsearch
+    state: started
+    enabled: true
+
+- name: Flush Elasticsearch handlers before waiting
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Elasticsearch HTTP
+  ansible.builtin.uri:
+    url: "https://127.0.0.1:{{ elastic_es_port }}"
+    method: GET
+    validate_certs: false
+    status_code: [200, 401]
+  register: elastic_http
+  retries: 40
+  delay: 5
+  until: elastic_http.status in [200, 401]

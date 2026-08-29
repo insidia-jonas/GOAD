@@ -1,0 +1,82 @@
+---
+- name: Resolve GravityZone package id (extra-var or environment)
+  ansible.builtin.set_fact:
+    _bitdefender_gz_package_id: "{{ bitdefender_gz_package_id | default(lookup('ansible.builtin.env', 'BITDEFENDER_GZ_PACKAGE_ID'), true) | default('', true) }}"
+
+- name: Skip Bitdefender when no package id or installer was provided
+  ansible.builtin.debug:
+    msg: >
+      Bitdefender was selected for {{ inventory_hostname }} but no GravityZone
+      package was provided. Create a GravityZone trial package, then set
+      bitdefender_gz_package_id (or BITDEFENDER_GZ_PACKAGE_ID), or
+      bitdefender_installer_url / bitdefender_installer_src
+      (see docs/mkdocs/docs/extensions/edr.md).
+  when:
+    - (_bitdefender_gz_package_id | default('') | length) == 0
+    - (bitdefender_installer_url | default('') | length) == 0
+    - (bitdefender_installer_src | default('') | length) == 0
+
+- name: Detect an existing Bitdefender service
+  win_service:
+    name: "{{ item }}"
+  loop: "{{ bitdefender_service_names }}"
+  register: bitdefender_services
+  failed_when: false
+
+- name: Remember if Bitdefender is already installed
+  ansible.builtin.set_fact:
+    _bitdefender_installed: "{{ bitdefender_services.results | selectattr('exists', 'defined') | selectattr('exists') | list | length > 0 }}"
+
+- name: Install Bitdefender Endpoint Security Tools
+  when:
+    - not (_bitdefender_installed | bool)
+    - >
+      (_bitdefender_gz_package_id | default('') | length) > 0
+      or (bitdefender_installer_url | default('') | length) > 0
+      or (bitdefender_installer_src | default('') | length) > 0
+  block:
+    - name: Create Bitdefender installer directory
+      win_file:
+        path: "{{ bitdefender_dest_dir }}"
+        state: directory
+
+    - name: Download GravityZone MSI wrapper
+      win_get_url:
+        url: "{{ bitdefender_wrapper_url }}"
+        dest: "{{ bitdefender_wrapper_dest }}"
+      when: (_bitdefender_gz_package_id | default('') | length) > 0
+
+    - name: Install BEST via MSI wrapper and GravityZone package id
+      win_command: >
+        msiexec /i "{{ bitdefender_wrapper_dest }}"
+        /qn GZ_PACKAGE_ID={{ _bitdefender_gz_package_id }}
+        REBOOT_IF_NEEDED={{ bitdefender_reboot_if_needed }}
+      when: (_bitdefender_gz_package_id | default('') | length) > 0
+      no_log: true
+      register: bitdefender_msi_install
+      failed_when: bitdefender_msi_install.rc not in [0, 1641, 3010]
+
+    - name: Download Bitdefender setup downloader
+      win_get_url:
+        url: "{{ bitdefender_installer_url }}"
+        dest: "{{ bitdefender_installer_dest }}"
+      when:
+        - (_bitdefender_gz_package_id | default('') | length) == 0
+        - (bitdefender_installer_url | default('') | length) > 0
+
+    - name: Copy Bitdefender setup downloader from the control node
+      win_copy:
+        src: "{{ bitdefender_installer_src }}"
+        dest: "{{ bitdefender_installer_dest }}"
+      when:
+        - (_bitdefender_gz_package_id | default('') | length) == 0
+        - (bitdefender_installer_url | default('') | length) == 0
+        - (bitdefender_installer_src | default('') | length) > 0
+
+    - name: Run Bitdefender setup downloader silently
+      win_command: "{{ bitdefender_installer_dest }} {{ bitdefender_install_args }}"
+      when:
+        - (_bitdefender_gz_package_id | default('') | length) == 0
+        - (bitdefender_installer_url | default('') | length) > 0 or (bitdefender_installer_src | default('') | length) > 0
+      register: bitdefender_exe_install
+      failed_when: bitdefender_exe_install.rc not in [0, 3010]

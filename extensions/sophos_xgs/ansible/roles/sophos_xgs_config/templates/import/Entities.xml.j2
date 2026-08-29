@@ -27,6 +27,12 @@
     <HostType>IP</HostType>
     <IPAddress>{{ sophos_lab_prefix }}.51</IPAddress>
   </IPHost>
+  <IPHost transactionid="">
+    <Name>{{ sophos_object_prefix }}-ELASTIC</Name>
+    <IPFamily>IPv4</IPFamily>
+    <HostType>IP</HostType>
+    <IPAddress>{{ sophos_lab_prefix }}.54</IPAddress>
+  </IPHost>
   <FirewallRule transactionid="">
     <Name>{{ sophos_object_prefix }}-LAN-TO-LAN</Name>
     <Description>Allow all traffic inside the GOAD lab LAN</Description>

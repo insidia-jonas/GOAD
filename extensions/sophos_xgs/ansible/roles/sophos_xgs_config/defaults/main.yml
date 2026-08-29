@@ -1,7 +1,12 @@
 # Sophos Firewall (SFOS) Home lab configuration
 # API: https://<host>:4444/webconsole/APIController
 # ISO and Home license are NOT redistributed — provide them yourself.
+# Enabling this extension replaces the Debian router on .53
+# (lab_extension.replace_debian_router, default true).
 
+sophos_replace_debian_router: true
+sophos_iso_path: "{{ lookup('env', 'SOPHOS_XGS_ISO') | default('', true) }}"
+sophos_license_path: "{{ lookup('env', 'SOPHOS_XGS_LICENSE') | default('', true) }}"
 sophos_api_host: "{{ ansible_host }}"
 sophos_api_port: 4444
 sophos_api_user: admin

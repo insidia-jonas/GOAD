@@ -105,3 +105,14 @@ ludus:
     windows:
       sysprep: true
       install_additional_tools: true
+{% if not replace_debian_router|default(false) %}
+  # Debian lab router / perimeter (replaced by sophos_xgs when that extension is on)
+  - vm_name: "{{ range_id }}-GOAD-ROUTER"
+    hostname: "{{ range_id }}-ROUTER"
+    template: debian-12-x64-server-template
+    vlan: 10
+    ip_last_octet: 53
+    ram_gb: 1
+    cpus: 1
+    linux: true
+{% endif %}
