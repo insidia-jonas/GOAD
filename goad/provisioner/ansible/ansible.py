@@ -1,4 +1,4 @@
-import os.path
+import os
 import yaml
 from goad.utils import *
 from goad.log import Log
@@ -30,9 +30,27 @@ class Ansible(Provisioner):
             return global_inventory
         return None
 
+    def _get_extension_inventories(self):
+        inventories = []
+        if not self.instance_path or not os.path.isdir(self.instance_path):
+            return inventories
+        try:
+            names = os.listdir(self.instance_path)
+        except OSError:
+            return inventories
+        for fname in sorted(names):
+            if not fname.endswith('_inventory'):
+                continue
+            path = os.path.join(self.instance_path, fname)
+            if os.path.isfile(path):
+                inventories.append(path)
+                Log.success(f'Extension inventory : {path} file found')
+        return inventories
+
     def get_inventory(self, lab_name, provider_name):
         Log.info('Loading inventory')
         inventory = self._get_lab_inventory(lab_name, provider_name)
+        inventory.extend(self._get_extension_inventories())
         global_inventory = self._get_global_inventory()
         if global_inventory is not None:
             inventory.append(global_inventory)

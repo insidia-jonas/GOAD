@@ -31,8 +31,9 @@ Windows Evaluation images have **WLMS / License Manager disabled** so they no lo
 - **wazuh**        : SIEM 4.14.x (SOCFortress + Sigma + custom AD/SQL rules)
 - **kali** / **commando** : attacker VMs
 - **sophos_xgs**   : optional firewall extension (Home license, `.53`)
+- **elastic_edr**  : optional Elastic Security 8.x (30-day trial, Fleet, `.54`)
 
-Per-host EDR is selected in `ad/GOAD/data/config.json` (`edr`: `wazuh`, `sysmon`, `defender`, `sophos`, `elastic`, `none`). See [edr](../extensions/edr.md).
+Per-host EDR is selected in `ad/GOAD/data/config.json` (`edr`: `wazuh`, `sysmon`, `defender`, `sophos`, `elastic`, `bitdefender`, `none`). See [edr](../extensions/edr.md).
 
 
 ## WRITEUP

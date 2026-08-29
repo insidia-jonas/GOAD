@@ -1,37 +1,104 @@
 ---
-- name: Skip Elastic Agent when Fleet is not configured
-  debug:
-    msg: >
-      Elastic Agent was selected for {{ inventory_hostname }} but
-      elastic_fleet_url / elastic_enrollment_token are empty.
-      Point them at your Fleet server (or the elk extension) before re-running.
+- name: Identify lab Elastic Security host
+  ansible.builtin.set_fact:
+    _elastic_server_host: "{{ (groups['elastic_server'] | default([])) | first | default('') }}"
+
+- name: Start from extra-vars when the operator provided a Fleet
+  ansible.builtin.set_fact:
+    _resolved_fleet_url: "{{ elastic_fleet_url | default('') }}"
+    _resolved_enrollment_token: "{{ elastic_enrollment_token | default('') }}"
+    _resolved_agent_version: "{{ elastic_agent_version | default('8.19.10') }}"
+
+- name: Prefer facts published by elastic_security
+  ansible.builtin.set_fact:
+    _resolved_fleet_url: "{{ hostvars[_elastic_server_host]['elastic_fleet_url'] | default(_resolved_fleet_url) }}"
+    _resolved_enrollment_token: "{{ hostvars[_elastic_server_host]['elastic_enrollment_token'] | default(_resolved_enrollment_token) }}"
+    _resolved_agent_version: "{{ hostvars[_elastic_server_host]['elastic_agent_version'] | default(_resolved_agent_version) }}"
   when:
-    - (elastic_fleet_url | default('') | length) == 0 or (elastic_enrollment_token | default('') | length) == 0
+    - _elastic_server_host | length > 0
+    - (_resolved_fleet_url | length) == 0 or (_resolved_enrollment_token | length) == 0
+
+- name: Read Fleet URL from the Elastic Security VM
+  ansible.builtin.slurp:
+    src: /opt/elastic/fleet_url
+  delegate_to: "{{ _elastic_server_host }}"
+  become: true
+  register: _fleet_url_slurp
+  failed_when: false
+  when:
+    - _elastic_server_host | length > 0
+    - _resolved_fleet_url | length == 0
+
+- name: Read enrollment token from the Elastic Security VM
+  ansible.builtin.slurp:
+    src: /opt/elastic/windows_enrollment_token
+  delegate_to: "{{ _elastic_server_host }}"
+  become: true
+  register: _enroll_slurp
+  failed_when: false
+  no_log: true
+  when:
+    - _elastic_server_host | length > 0
+    - _resolved_enrollment_token | length == 0
+
+- name: Read stack version from the Elastic Security VM
+  ansible.builtin.slurp:
+    src: /opt/elastic/endpoint_package_version
+  delegate_to: "{{ _elastic_server_host }}"
+  become: true
+  register: _version_slurp
+  failed_when: false
+  when:
+    - _elastic_server_host | length > 0
+
+- name: Apply slurped Fleet connection
+  ansible.builtin.set_fact:
+    _resolved_fleet_url: "{{ (_fleet_url_slurp.content | b64decode | trim) if (_fleet_url_slurp.content is defined) else _resolved_fleet_url }}"
+    _resolved_enrollment_token: "{{ (_enroll_slurp.content | b64decode | trim) if (_enroll_slurp.content is defined) else _resolved_enrollment_token }}"
+    _resolved_agent_version: "{{ (_version_slurp.content | b64decode | trim) if (_version_slurp.content is defined and (_version_slurp.content | b64decode | trim | length) > 0) else _resolved_agent_version }}"
+  no_log: true
+  when: (_fleet_url_slurp.content is defined) or (_enroll_slurp.content is defined)
+
+- name: Skip Elastic Agent when Fleet is not configured
+  ansible.builtin.debug:
+    msg: >
+      Elastic Agent was selected for {{ inventory_hostname }} but no Fleet
+      URL/token was found. Install the elastic_edr extension (30-day trial)
+      or set elastic_fleet_url and elastic_enrollment_token as extra-vars
+      (see docs/mkdocs/docs/extensions/edr.md).
+  when: (_resolved_fleet_url | length) == 0 or (_resolved_enrollment_token | length) == 0
 
 - name: Install Elastic Agent
   when:
-    - (elastic_fleet_url | default('') | length) > 0
-    - (elastic_enrollment_token | default('') | length) > 0
+    - (_resolved_fleet_url | length) > 0
+    - (_resolved_enrollment_token | length) > 0
   block:
     - name: Create Elastic installer directory
       win_file:
-        path: C:\setup\elastic
+        path: "{{ elastic_agent_dest_dir }}"
         state: directory
 
     - name: Set Elastic Agent download URL
-      set_fact:
-        elastic_agent_url: "{{ elastic_agent_url | default('https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-' + elastic_agent_version + '-windows-x86_64.zip', true) }}"
+      ansible.builtin.set_fact:
+        _elastic_agent_url: "{{ elastic_agent_url if (elastic_agent_url | default('') | length > 0) else ('https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-' + _resolved_agent_version + '-windows-x86_64.zip') }}"
 
     - name: Download Elastic Agent
       win_get_url:
-        url: "{{ elastic_agent_url }}"
+        url: "{{ _elastic_agent_url }}"
         dest: "{{ elastic_agent_dest }}"
 
     - name: Unzip Elastic Agent
       win_unzip:
         src: "{{ elastic_agent_dest }}"
-        dest: C:\setup\elastic
-        creates: C:\setup\elastic\elastic-agent.exe
+        dest: "{{ elastic_agent_dest_dir }}"
+
+    - name: Find elastic-agent.exe
+      win_shell: |
+        $exe = Get-ChildItem -Path '{{ elastic_agent_dest_dir }}' -Recurse -Filter 'elastic-agent.exe' -ErrorAction SilentlyContinue |
+          Select-Object -First 1
+        if (-not $exe) { throw 'elastic-agent.exe not found' }
+        $exe.FullName
+      register: elastic_exe
 
     - name: Check Elastic Agent service
       win_service:
@@ -41,9 +108,13 @@
 
     - name: Enroll and install Elastic Agent
       win_command: >
-        C:\setup\elastic\elastic-agent.exe install
-        --url {{ elastic_fleet_url }}
-        --enrollment-token {{ elastic_enrollment_token }}
+        "{{ elastic_exe.stdout | trim }}" install
+        --url {{ _resolved_fleet_url }}
+        --enrollment-token {{ _resolved_enrollment_token }}
         --non-interactive
-        --insecure
+        --force
+        {% if elastic_agent_insecure | bool %}--insecure{% endif %}
+      no_log: true
       when: elastic_svc.exists is not defined or not elastic_svc.exists
+      register: elastic_install
+      failed_when: elastic_install.rc not in [0, 1]

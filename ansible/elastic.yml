@@ -1,0 +1,15 @@
+---
+# Self-managed Elastic Security 8.x (trial) + Fleet.
+# The VM comes from the elastic_edr extension ({{ip_range}}.54).
+# Without that group the play is skipped.
+
+- import_playbook: data.yml
+  vars:
+    data_path: "../ad/{{domain_name}}/data/"
+  tags: 'data'
+
+- name: Elastic Security stack (8.x trial, Fleet, Elastic Defend)
+  hosts: elastic_server
+  become: yes
+  roles:
+    - { role: 'elastic_security', tags: 'elastic_security' }

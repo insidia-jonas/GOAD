@@ -1,0 +1,31 @@
+---
+- name: Read Fleet URL written by setup_fleet.py
+  ansible.builtin.slurp:
+    src: "{{ elastic_data_dir }}/fleet_url"
+  register: elastic_fleet_url_slurp
+
+- name: Read Windows enrollment token
+  ansible.builtin.slurp:
+    src: "{{ elastic_data_dir }}/windows_enrollment_token"
+  register: elastic_enroll_slurp
+  no_log: true
+
+- name: Publish enrollment facts for Windows hosts
+  ansible.builtin.set_fact:
+    elastic_fleet_url: "{{ elastic_fleet_url_slurp.content | b64decode | trim }}"
+    elastic_enrollment_token: "{{ elastic_enroll_slurp.content | b64decode | trim }}"
+    elastic_agent_version: "{{ elastic_stack_version | default(elastic_agent_fallback_version) }}"
+    elastic_kibana_url: "{{ elastic_kibana_url }}"
+  cacheable: true
+
+- name: Elastic Security is ready
+  ansible.builtin.debug:
+    msg: >
+      Elastic Security (8.x trial) is up.
+      Kibana: {{ elastic_kibana_url }}
+      Fleet: {{ elastic_fleet_url }}
+      User: elastic
+      Secrets stay on this VM in {{ elastic_credentials_file }}
+      (not logged). Elastic Defend needs the 30-day trial.
+      Add "elastic" to a host edr list and re-run edr.yml
+      or provision_extension elastic_edr.

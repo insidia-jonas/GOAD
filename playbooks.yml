@@ -75,7 +75,7 @@ default:
   - servers.yml
   - security.yml
   - vulnerabilities.yml
-  # Per-host EDR (Wazuh + optional Defender / Sophos / Elastic)
+  # Per-host EDR (Wazuh + optional Defender / Sophos / Elastic / Bitdefender)
   - edr.yml
   # Show credentials at the end
   - credentials.yml

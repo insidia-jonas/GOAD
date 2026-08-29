@@ -56,8 +56,10 @@
 - [X] Wazuh 4.14.x + SOCFortress (actually installed) + Sigma + custom AD/red-team/SQL rules
 - [X] Dedicated file server (oldtown/srv04) with realistic dummy files
 - [X] Plaintext SQL credentials on shares + sample MSSQL databases
-- [X] Per-host EDR selection (`wazuh` / `defender` / `sophos` / `elastic` / `none`)
+- [X] Per-host EDR selection (`wazuh` / `defender` / `sophos` / `elastic` / `bitdefender` / `none`)
 - [X] Sophos XGS Home extension (API + Entities.xml template)
+- [X] Elastic Security 8.x extension (`elastic_edr`) with self-managed 30-day trial + Fleet + Elastic Defend
+- [X] Bitdefender GravityZone BEST as a selectable EDR (BYO trial package)
 
 ## v3
 - [X] aws support

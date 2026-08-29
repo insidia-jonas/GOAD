@@ -219,7 +219,8 @@ commando
 [file_server]
 srv04
 
-; Per-host EDR is driven by config.json "edr" lists (wazuh/sysmon/defender/sophos/elastic/none).
+; Per-host EDR is driven by config.json "edr" lists
+; (wazuh/sysmon/defender/sophos/elastic/bitdefender/none).
 ; Inventory groups below are optional overrides / documentation.
 [edr_wazuh:children]
 domain
@@ -228,8 +229,13 @@ domain
 
 [edr_elastic]
 
+[edr_bitdefender]
+
 [edr_none]
 commando
+
+; Populated by the elastic_edr extension ({{ip_range}}.54)
+[elastic_server]
 
 ; attacker VMs
 [attackers]
