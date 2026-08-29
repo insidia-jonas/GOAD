@@ -1,0 +1,17 @@
+# Sophos XGS is not a public Vagrant box. Build a local box from the Home ISO
+# (see extensions/sophos_xgs/README.md) and either:
+#   export SOPHOS_XGS_BOX=goad/sophos-xgs
+# or keep the default name below.
+boxes.append(
+    { :name => "{{lab_name}}-XGS",
+      :ip => "{{ip_range}}.53",
+      :box => ENV["SOPHOS_XGS_BOX"] || "goad/sophos-xgs",
+      :os => "linux",
+      :cpus => 2,
+      :mem => 4096,
+      :forwarded_port => [
+        { :guest => 4444, :host => 4444, :id => "sfos-web" },
+        { :guest => 22, :host => 2253, :id => "ssh" }
+      ]
+    }
+)

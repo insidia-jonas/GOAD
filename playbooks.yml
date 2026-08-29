@@ -75,7 +75,7 @@ default:
   - servers.yml
   - security.yml
   - vulnerabilities.yml
-  # Wazuh EDR installation
-  - wazuh.yml
+  # Per-host EDR (Wazuh + optional Defender / Sophos / Elastic)
+  - edr.yml
   # Show credentials at the end
   - credentials.yml

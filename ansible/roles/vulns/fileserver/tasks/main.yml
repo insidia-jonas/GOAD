@@ -1,0 +1,91 @@
+---
+- name: Load fileserver settings from vulns_vars
+  set_fact:
+    fileserver_root: "{{ vulns_vars.root | default('C:\\FileServer') }}"
+    fileserver_install_windows_role: "{{ vulns_vars.install_role | default(true) }}"
+    fileserver_dummy_files_per_share: "{{ vulns_vars.dummy_files_per_share | default(40) }}"
+    fileserver_plant_sql_credentials: "{{ vulns_vars.plant_sql_credentials | default(true) }}"
+    fileserver_shares: "{{ vulns_vars.shares | default({}) }}"
+    fileserver_castelblack_sa: "{{ lab.hosts['srv02'].mssql.sa_password if (lab.hosts['srv02'] is defined and lab.hosts['srv02'].mssql is defined) else '' }}"
+    fileserver_braavos_sa: "{{ lab.hosts['srv03'].mssql.sa_password if (lab.hosts['srv03'] is defined and lab.hosts['srv03'].mssql is defined) else '' }}"
+    fileserver_sql_svc_password: "{{ lab.domains['north.sevenkingdoms.local'].users['sql_svc'].password if (lab.domains['north.sevenkingdoms.local'] is defined and lab.domains['north.sevenkingdoms.local'].users['sql_svc'] is defined) else (lab.domains['essos.local'].users['sql_svc'].password if (lab.domains['essos.local'] is defined and lab.domains['essos.local'].users['sql_svc'] is defined) else '') }}"
+
+- name: Install Windows File Server role
+  win_feature:
+    name:
+      - FS-FileServer
+    state: present
+    include_management_tools: yes
+  register: fileserver_feature
+  when: fileserver_install_windows_role | bool
+  failed_when: false
+
+- name: Reboot after File Server role if required
+  win_reboot:
+    reboot_timeout: 900
+    post_reboot_delay: 20
+  when: fileserver_feature.reboot_required | default(false)
+
+- name: Create file-server root
+  win_file:
+    path: "{{ fileserver_root }}"
+    state: directory
+
+- name: Create share directories
+  win_file:
+    path: "{{ item.value.path | default(fileserver_root + '\\' + item.key) }}"
+    state: directory
+  with_dict: "{{ fileserver_shares }}"
+  when: fileserver_shares | length > 0
+
+- name: Publish SMB shares
+  ansible.windows.win_share:
+    name: "{{ item.key }}"
+    description: "{{ item.value.description | default('GOAD file server share ' + item.key) }}"
+    path: "{{ item.value.path | default(fileserver_root + '\\' + item.key) }}"
+    list: "{{ item.value.list | default('yes') }}"
+    full: "{{ item.value.full | default('Administrators') }}"
+    change: "{{ item.value.change | default('') }}"
+    read: "{{ item.value.read | default('Users') }}"
+  with_dict: "{{ fileserver_shares }}"
+  when: fileserver_shares | length > 0
+
+- name: Grant NTFS read to Users on each share
+  win_acl:
+    path: "{{ item.value.path | default(fileserver_root + '\\' + item.key) }}"
+    user: Users
+    rights: Read
+    type: allow
+    state: present
+  with_dict: "{{ fileserver_shares }}"
+  when: fileserver_shares | length > 0
+  failed_when: false
+
+- name: Copy dummy-file generator
+  win_copy:
+    src: generate_fileserver_content.ps1
+    dest: "{{ fileserver_root }}\\generate_fileserver_content.ps1"
+
+- name: Render SQL share secret sidecar from lab config
+  win_template:
+    src: sql_share_secrets.json.j2
+    dest: "{{ fileserver_root }}\\sql_share_secrets.json"
+  no_log: true
+  when: fileserver_plant_sql_credentials | bool
+
+- name: Generate realistic dummy files and plant SQL credentials
+  win_shell: |
+    $plant = $true
+    if ('{{ fileserver_plant_sql_credentials | lower }}' -eq 'false') { $plant = $false }
+    $cb = ''; $br = ''; $svc = ''
+    $sidecar = '{{ fileserver_root }}\sql_share_secrets.json'
+    if (Test-Path -LiteralPath $sidecar) {
+      $s = Get-Content -LiteralPath $sidecar -Raw | ConvertFrom-Json
+      $cb = [string]$s.castelblack_sa
+      $br = [string]$s.braavos_sa
+      $svc = [string]$s.sql_svc_password
+    }
+    & '{{ fileserver_root }}\generate_fileserver_content.ps1' -Root '{{ fileserver_root }}' -FilesPerShare {{ fileserver_dummy_files_per_share | int }} -PlantSqlCredentials $plant -CastelblackSa $cb -BraavosSa $br -SqlSvcPassword $svc
+  args:
+    chdir: "{{ fileserver_root }}"
+  no_log: true

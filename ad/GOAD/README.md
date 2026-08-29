@@ -5,12 +5,18 @@
 ![GOAD overview](../../docs/img/GOAD_schema.png)
 
 ## Servers
-This lab is actually composed of five virtual machines:
-- **kingslanding** : DC01  running on Windows Server 2019 (with windefender enabled by default)
-- **winterfell**   : DC02  running on Windows Server 2019 (with windefender enabled by default)
-- **castelblack**  : SRV02 running on Windows Server 2019 (with windefender **disabled** by default)
-- **meereen**      : DC03  running on Windows Server 2016 (with windefender enabled by default)
-- **braavos**      : SRV03 running on Windows Server 2016 (with windefender enabled by default)
+This fork is a full red-team lab (not only the original five VMs):
+- **kingslanding** : DC01
+- **winterfell**   : DC02
+- **castelblack**  : SRV02 — IIS / MSSQL / SMB (Defender **disabled** by default)
+- **meereen**      : DC03
+- **braavos**      : SRV03 — MSSQL / ADCS
+- **oldtown**      : SRV04 — file server with dummy files + plaintext SQL credentials
+- **harrenhal** / **theeyrie** : WS01 / WS02
+- **wazuh** : SIEM 4.14.x
+- **kali** / **commando** : attackers
+- Windows Eval hourly shutdown (WLMS) is disabled on every Windows VM
+- Per-host EDR: `edr` list in `data/config.json`
 
 ## domain : north.sevenkingdoms.local
 - **winterfell**     : DC01

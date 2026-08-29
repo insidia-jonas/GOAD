@@ -1,0 +1,7 @@
+# Elastic Agent (Elastic Defend). Requires an existing Fleet server
+# (for example the elk extension) and an enrollment token.
+elastic_agent_version: "8.17.0"
+elastic_agent_url: ""
+elastic_fleet_url: ""
+elastic_enrollment_token: ""
+elastic_agent_dest: "C:\\setup\\elastic\\elastic-agent.zip"

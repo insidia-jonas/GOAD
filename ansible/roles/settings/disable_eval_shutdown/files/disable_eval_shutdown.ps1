@@ -1,75 +1,162 @@
-# Disable Windows Server Evaluation Shutdown
-# This script prevents Windows Server Evaluation from shutting down after the trial period expires
+# Disable Windows Evaluation / trial shutdown on every Windows SKU.
+# Covers:
+#   - WLMS (Windows Licensing Monitoring Service) — hourly shutdown on Eval
+#   - License Manager scheduled tasks and service
+#   - SkipRearm / SoftwareProtectionPlatform tweaks
+# Safe to re-run (idempotent). Prints CHANGED / OK / WARNING for Ansible.
 
-# 1. Disable the License Manager scheduled task that triggers the shutdown
-$taskPath = "\Microsoft\Windows\License Manager\"
-$taskName = "ScheduledShutdown"
+$ErrorActionPreference = 'Continue'
 
-try {
-    $task = Get-ScheduledTask -TaskPath $taskPath -TaskName $taskName -ErrorAction SilentlyContinue
-    if ($task) {
-        if ($task.State -ne 'Disabled') {
-            Disable-ScheduledTask -TaskPath $taskPath -TaskName $taskName
-            Write-Host "CHANGED: Disabled scheduled task: $taskPath$taskName"
-        } else {
-            Write-Host "OK: Scheduled task already disabled: $taskPath$taskName"
+function Write-Changed([string]$Message) { Write-Host "CHANGED: $Message" }
+function Write-Ok([string]$Message)      { Write-Host "OK: $Message" }
+function Write-Warn([string]$Message)    { Write-Host "WARNING: $Message" }
+
+function Disable-WindowsService {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    try {
+        $service = Get-Service -Name $Name -ErrorAction SilentlyContinue
+        if (-not $service) {
+            Write-Ok "Service not found: $Name"
+            return
         }
-    } else {
-        Write-Host "OK: Scheduled task not found (may not be an evaluation version)"
-    }
-} catch {
-    Write-Host "WARNING: Could not disable scheduled task: $_"
-}
 
-# 2. Also check for any other license-related shutdown tasks
-$allLicenseTasks = Get-ScheduledTask -TaskPath "\Microsoft\Windows\License Manager\*" -ErrorAction SilentlyContinue
-foreach ($t in $allLicenseTasks) {
-    if ($t.State -ne 'Disabled' -and $t.TaskName -like "*Shutdown*") {
-        try {
-            Disable-ScheduledTask -TaskPath $t.TaskPath -TaskName $t.TaskName
-            Write-Host "CHANGED: Disabled additional license task: $($t.TaskPath)$($t.TaskName)"
-        } catch {
-            Write-Host "WARNING: Could not disable task $($t.TaskName): $_"
-        }
-    }
-}
-
-# 3. Disable the Windows License Manager Service (optional, more aggressive)
-$serviceName = "LicenseManager"
-try {
-    $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
-    if ($service) {
+        $changed = $false
         if ($service.StartType -ne 'Disabled') {
-            Set-Service -Name $serviceName -StartupType Disabled
-            Write-Host "CHANGED: Disabled service: $serviceName"
-        } else {
-            Write-Host "OK: Service already disabled: $serviceName"
+            Stop-Service -Name $Name -Force -ErrorAction SilentlyContinue
+            Set-Service -Name $Name -StartupType Disabled
+            sc.exe config $Name start= disabled | Out-Null
+            $changed = $true
         }
-        if ($service.Status -eq 'Running') {
-            Stop-Service -Name $serviceName -Force
-            Write-Host "CHANGED: Stopped service: $serviceName"
+        elseif ($service.Status -eq 'Running') {
+            Stop-Service -Name $Name -Force -ErrorAction SilentlyContinue
+            $changed = $true
         }
-    } else {
-        Write-Host "OK: Service not found: $serviceName"
+
+        if ($changed) {
+            Write-Changed "Disabled and stopped service: $Name"
+        }
+        else {
+            Write-Ok "Service already disabled: $Name"
+        }
     }
-} catch {
-    Write-Host "WARNING: Could not configure service: $_"
+    catch {
+        Write-Warn "Could not configure service ${Name}: $_"
+    }
 }
 
-# 4. Create a registry key to suppress the evaluation notice (cosmetic)
+function Disable-LicenseScheduledTasks {
+    $taskRoots = @(
+        '\Microsoft\Windows\License Manager\',
+        '\Microsoft\Windows\Windows Activation Technologies\',
+        '\Microsoft\Windows\SoftwareProtectionPlatform\'
+    )
+
+    foreach ($taskPath in $taskRoots) {
+        $tasks = @()
+        try {
+            $tasks = @(Get-ScheduledTask -TaskPath $taskPath -ErrorAction SilentlyContinue)
+        }
+        catch {
+            continue
+        }
+
+        foreach ($task in $tasks) {
+            if (-not $task) { continue }
+            $match = ($task.TaskName -match '(?i)shutdown|license|activation|rearm|wlms|eval')
+            if (-not $match) { continue }
+            if ($task.State -eq 'Disabled') {
+                Write-Ok "Scheduled task already disabled: $($task.TaskPath)$($task.TaskName)"
+                continue
+            }
+            try {
+                Disable-ScheduledTask -TaskPath $task.TaskPath -TaskName $task.TaskName | Out-Null
+                Write-Changed "Disabled scheduled task: $($task.TaskPath)$($task.TaskName)"
+            }
+            catch {
+                Write-Warn "Could not disable task $($task.TaskName): $_"
+            }
+        }
+    }
+
+    # Catch tasks registered under other paths (WLMS / eval leftovers)
+    try {
+        $extra = @(Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object {
+            $_.TaskName -match '(?i)ScheduledShutdown|WLMS|EvalShutdown|LicenseManager'
+        })
+        foreach ($task in $extra) {
+            if ($task.State -eq 'Disabled') { continue }
+            try {
+                Disable-ScheduledTask -TaskPath $task.TaskPath -TaskName $task.TaskName | Out-Null
+                Write-Changed "Disabled extra license task: $($task.TaskPath)$($task.TaskName)"
+            }
+            catch {
+                Write-Warn "Could not disable extra task $($task.TaskName): $_"
+            }
+        }
+    }
+    catch { }
+}
+
+# 1. WLMS is the service that powers off Evaluation editions after ~1 hour
+Disable-WindowsService -Name 'WLMS'
+
+# 2. Modern License Manager service (Win10/11 / Server 2019+)
+Disable-WindowsService -Name 'LicenseManager'
+
+# 3. Scheduled shutdown / activation tasks
+Disable-LicenseScheduledTasks
+
+# 4. SkipRearm + suppress eval nag (cosmetic / rearm budget)
 try {
-    $regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform"
-    if (Test-Path $regPath) {
-        $currentValue = Get-ItemProperty -Path $regPath -Name "SkipRearm" -ErrorAction SilentlyContinue
-        if (-not $currentValue -or $currentValue.SkipRearm -ne 1) {
-            Set-ItemProperty -Path $regPath -Name "SkipRearm" -Value 1 -Type DWord -Force
-            Write-Host "CHANGED: Set SkipRearm registry value"
-        } else {
-            Write-Host "OK: SkipRearm already set"
-        }
+    $spp = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform'
+    if (-not (Test-Path $spp)) {
+        New-Item -Path $spp -Force | Out-Null
     }
-} catch {
-    Write-Host "WARNING: Could not set registry value: $_"
+    $current = Get-ItemProperty -Path $spp -Name 'SkipRearm' -ErrorAction SilentlyContinue
+    if (-not $current -or $current.SkipRearm -ne 1) {
+        Set-ItemProperty -Path $spp -Name 'SkipRearm' -Value 1 -Type DWord -Force
+        Write-Changed 'Set SkipRearm registry value'
+    }
+    else {
+        Write-Ok 'SkipRearm already set'
+    }
+}
+catch {
+    Write-Warn "Could not set SkipRearm: $_"
 }
 
-Write-Host "Evaluation shutdown prevention completed"
+# 5. Hide remaining evaluation grace-period UI noise when the key exists
+try {
+    $evalKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+    $edition = (Get-ItemProperty -Path $evalKey -Name 'EditionID' -ErrorAction SilentlyContinue).EditionID
+    if ($edition -and $edition -match '(?i)Eval') {
+        Write-Ok "Edition is evaluation ($edition); WLMS/License Manager disabled"
+    }
+    else {
+        Write-Ok "Edition is not evaluation ($edition)"
+    }
+}
+catch { }
+
+# 6. Best-effort rearm (extends remaining eval time; harmless if already exhausted)
+try {
+    $rearmMarker = 'HKLM:\SOFTWARE\GOAD\DisableEvalShutdown'
+    if (-not (Test-Path $rearmMarker)) {
+        New-Item -Path $rearmMarker -Force | Out-Null
+    }
+    $alreadyRearmed = (Get-ItemProperty -Path $rearmMarker -Name 'RearmAttempted' -ErrorAction SilentlyContinue).RearmAttempted
+    if ($alreadyRearmed -ne 1) {
+        $p = Start-Process -FilePath 'cscript.exe' -ArgumentList '//Nologo C:\Windows\System32\slmgr.vbs /rearm' -Wait -PassThru -WindowStyle Hidden
+        Set-ItemProperty -Path $rearmMarker -Name 'RearmAttempted' -Value 1 -Type DWord -Force
+        Write-Changed "Attempted slmgr /rearm (exit $($p.ExitCode))"
+    }
+    else {
+        Write-Ok 'slmgr /rearm already attempted on this host'
+    }
+}
+catch {
+    Write-Warn "slmgr /rearm skipped: $_"
+}
+
+Write-Host 'Evaluation shutdown prevention completed'

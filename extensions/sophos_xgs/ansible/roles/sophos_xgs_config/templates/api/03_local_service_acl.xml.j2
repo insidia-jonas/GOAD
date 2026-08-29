@@ -1,0 +1,16 @@
+<Request>
+  <Login>
+    <Username>{{ sophos_api_user }}</Username>
+    <Password>{{ sophos_admin_password }}</Password>
+  </Login>
+  <Set operation="add">
+    <LocalServiceACL>
+      <RuleName>{{ sophos_object_prefix }}-API-FROM-LAB</RuleName>
+      <Description>Allow HTTPS/API/SSH from the GOAD LAN (Home lab)</Description>
+      <IPAddress>{{ sophos_object_prefix }}-LAB-NET</IPAddress>
+      <Service>HTTPS</Service>
+      <Service>SSH</Service>
+      <Action>Accept</Action>
+    </LocalServiceACL>
+  </Set>
+</Request>

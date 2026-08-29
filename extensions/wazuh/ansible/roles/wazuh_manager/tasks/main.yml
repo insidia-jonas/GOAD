@@ -1,30 +1,37 @@
-# use /opt/wazuh instead of /tmp to keep track
+# Wazuh Manager Installation
+# Credits to SOCFortress and Mayfly277
+
 - name: Create /opt/wazuh directory if it does not exist
   ansible.builtin.file:
     path: /opt/wazuh
     state: directory
     mode: '0755'
 
-# check existence to not reinstall if already installed
+- name: Install CA certificates and git
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - git
+      - curl
+    state: present
+    update_cache: yes
+
 - name: Check services facts
   ansible.builtin.service_facts:
-
-# - name: Print service facts
-#   ansible.builtin.debug:
-#     var: ansible_facts.services
 
 - name: Download Wazuh installation script
   get_url:
     url: "{{ wazuh_install_script_url }}"
     dest: /opt/wazuh/wazuh-install.sh
+    validate_certs: no
+    mode: '0755'
   when: not ansible_facts.services['wazuh-manager.service'] is defined
 
 - name: Run Wazuh installation script
-  shell: sudo bash /opt/wazuh/wazuh-install.sh -a -i > /opt/wazuh/wazuh-install-output.txt
+  shell: bash /opt/wazuh/wazuh-install.sh -a -i > /opt/wazuh/wazuh-install-output.txt
   when: not ansible_facts.services['wazuh-manager.service'] is defined
 
-# FIX false positive on  /bin/diff  cf. https://github.com/wazuh/wazuh/issues/19000
-- name: fix rootkit trojan detection due to issue
+- name: Fix rootkit trojan detection due to issue
   ansible.builtin.lineinfile:
     path: /var/ossec/etc/rootcheck/rootkit_trojans.txt
     search_string: 'diff        !bash|^/bin/sh|file\.h|proc\.h|/dev/[^n]|^/bin/.*sh!'
@@ -36,29 +43,127 @@
     state: started
     enabled: yes
 
-# check socfotress folder to avoid reinstall if already installed
-- name: Get stats of ossec directory
+# SOCFortress must not key off /var/ossec — that directory exists after a
+# successful manager install, so the old condition never installed the pack.
+- name: Check if SOCFortress rules already installed
   ansible.builtin.stat:
-    path: /var/ossec
-  register: ossec_folder
+    path: /opt/wazuh/.socfortress_rules_installed
+  register: socfortress_marker
 
-- name: Download SOCFORTRESS Wazuh rules script
+- name: Copy SOCFORTRESS Wazuh rules script
   copy:
     src: wazuh_socfortress_rules.sh
     dest: /opt/wazuh/wazuh_socfortress_rules.sh
-    mode: "0755"  # Ensure the script is executable
-  when: not ossec_folder.stat.exists
+    mode: "0755"
+  when:
+    - wazuh_install_socfortress_rules | bool
+    - not socfortress_marker.stat.exists
 
-- name: Run SOCFORTRESS Wazuh rules script
-  shell: sudo bash /opt/wazuh/wazuh_socfortress_rules.sh
-  when: not ossec_folder.stat.exists
+- name: Install SOCFORTRESS Wazuh rules
+  shell: bash /opt/wazuh/wazuh_socfortress_rules.sh
+  when:
+    - wazuh_install_socfortress_rules | bool
+    - not socfortress_marker.stat.exists
+  register: socfortress_install
+  ignore_errors: yes
+
+- name: Mark SOCFortress rules as installed
+  ansible.builtin.file:
+    path: /opt/wazuh/.socfortress_rules_installed
+    state: touch
+    mode: '0644'
+  when:
+    - wazuh_install_socfortress_rules | bool
+    - socfortress_install is defined
+    - socfortress_install is succeeded
+
+# ============================================
+# Install MITRE ATT&CK, AD, and lab rules
+# ============================================
+
+- name: Copy custom Wazuh rule packs
+  copy:
+    src: "rules/{{ item }}"
+    dest: "/var/ossec/etc/rules/{{ item }}"
+    owner: wazuh
+    group: wazuh
+    mode: '0660'
+  loop:
+    - mitre_sysmon_rules.xml
+    - ad_attack_rules.xml
+    - lab_redteam_rules.xml
+    - fileserver_sql_rules.xml
+  notify: Restart Wazuh Manager
+
+- name: Check if extra Windows event channels are configured
+  shell: grep -q "Microsoft-Windows-PowerShell/Operational" /var/ossec/etc/ossec.conf
+  register: extra_channels_check
+  ignore_errors: yes
+  changed_when: false
+
+- name: Add Sysmon and PowerShell event collection to ossec.conf
+  blockinfile:
+    path: /var/ossec/etc/ossec.conf
+    insertbefore: "</ossec_config>"
+    marker: "<!-- {mark} ANSIBLE MANAGED WINDOWS CHANNELS -->"
+    block: |
+      <localfile>
+        <location>Microsoft-Windows-Sysmon/Operational</location>
+        <log_format>eventchannel</log_format>
+      </localfile>
+      <localfile>
+        <location>Microsoft-Windows-PowerShell/Operational</location>
+        <log_format>eventchannel</log_format>
+      </localfile>
+      <localfile>
+        <location>Windows PowerShell</location>
+        <log_format>eventchannel</log_format>
+      </localfile>
+      <localfile>
+        <location>Microsoft-Windows-TaskScheduler/Operational</location>
+        <log_format>eventchannel</log_format>
+      </localfile>
+  when: extra_channels_check.rc != 0
+  notify: Restart Wazuh Manager
+
+- name: Check if Sigma rules already installed
+  ansible.builtin.stat:
+    path: /opt/wazuh/.sigma_rules_installed
+  register: sigma_marker
+
+- name: Copy Sigma converter script
+  copy:
+    src: sigma_to_wazuh.sh
+    dest: /opt/wazuh/sigma_to_wazuh.sh
+    mode: '0755'
+  when: wazuh_install_sigma_rules | bool
+
+- name: Convert and install Sigma rules
+  shell: bash /opt/wazuh/sigma_to_wazuh.sh
+  when:
+    - wazuh_install_sigma_rules | bool
+    - not sigma_marker.stat.exists
+  register: sigma_install
+  ignore_errors: yes
+
+- name: Mark Sigma rules as installed
+  ansible.builtin.file:
+    path: /opt/wazuh/.sigma_rules_installed
+    state: touch
+    mode: '0644'
+  when:
+    - wazuh_install_sigma_rules | bool
+    - sigma_install is defined
+    - sigma_install is succeeded
 
 - name: Extract username and password
   shell: "grep -E 'User:|Password:' /opt/wazuh/wazuh-install-output.txt | awk '{print $NF}'"
   register: access_info
+  ignore_errors: yes
 
 - name: Display username and password
   debug:
     msg:
-      - "Username: {{ access_info.stdout_lines[0] }}"
-      - "Password: {{ access_info.stdout_lines[1] }}"
+      - "Username: {{ access_info.stdout_lines[0] | default('admin') }}"
+      - "Password: {{ access_info.stdout_lines[1] | default('Check /opt/wazuh/wazuh-install-output.txt') }}"
+  when: access_info.stdout_lines | length >= 2

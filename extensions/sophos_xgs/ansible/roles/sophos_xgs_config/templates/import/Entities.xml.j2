@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sophos Firewall import-export template for the GOAD lab (Home license).
+  Import via: Backup & Firmware > Import / Export > Import.
+
+  This is a lab starting point. Exact entity schema varies slightly by SFOS
+  version — if import rejects a node, apply the same objects via the API
+  templates in templates/api/ or create them in the UI.
+-->
+<Configuration APIVersion="1905.1">
+  <IPHost transactionid="">
+    <Name>{{ sophos_object_prefix }}-LAB-NET</Name>
+    <IPFamily>IPv4</IPFamily>
+    <HostType>Network</HostType>
+    <IPAddress>{{ sophos_lab_network }}</IPAddress>
+    <Subnet>{{ sophos_lab_netmask }}</Subnet>
+  </IPHost>
+  <IPHost transactionid="">
+    <Name>{{ sophos_object_prefix }}-KALI</Name>
+    <IPFamily>IPv4</IPFamily>
+    <HostType>IP</HostType>
+    <IPAddress>{{ sophos_lab_prefix }}.50</IPAddress>
+  </IPHost>
+  <IPHost transactionid="">
+    <Name>{{ sophos_object_prefix }}-WAZUH</Name>
+    <IPFamily>IPv4</IPFamily>
+    <HostType>IP</HostType>
+    <IPAddress>{{ sophos_lab_prefix }}.51</IPAddress>
+  </IPHost>
+  <FirewallRule transactionid="">
+    <Name>{{ sophos_object_prefix }}-LAN-TO-LAN</Name>
+    <Description>Allow all traffic inside the GOAD lab LAN</Description>
+    <IPFamily>IPv4</IPFamily>
+    <Status>Enable</Status>
+    <Position>Top</Position>
+    <PolicyType>Network</PolicyType>
+    <Action>Accept</Action>
+    <LogTraffic>Enable</LogTraffic>
+  </FirewallRule>
+</Configuration>

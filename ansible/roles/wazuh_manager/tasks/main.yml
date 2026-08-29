@@ -7,10 +7,12 @@
     state: directory
     mode: '0755'
 
-# Install CA certificates to fix SSL issues
-- name: Install CA certificates
+- name: Install CA certificates and git
   ansible.builtin.apt:
-    name: ca-certificates
+    name:
+      - ca-certificates
+      - git
+      - curl
     state: present
     update_cache: yes
 
@@ -22,13 +24,13 @@
     url: "{{ wazuh_install_script_url }}"
     dest: /opt/wazuh/wazuh-install.sh
     validate_certs: no
+    mode: '0755'
   when: not ansible_facts.services['wazuh-manager.service'] is defined
 
 - name: Run Wazuh installation script
-  shell: sudo bash /opt/wazuh/wazuh-install.sh -a -i > /opt/wazuh/wazuh-install-output.txt
+  shell: bash /opt/wazuh/wazuh-install.sh -a -i > /opt/wazuh/wazuh-install-output.txt
   when: not ansible_facts.services['wazuh-manager.service'] is defined
 
-# FIX false positive on /bin/diff cf. https://github.com/wazuh/wazuh/issues/19000
 - name: Fix rootkit trojan detection due to issue
   ansible.builtin.lineinfile:
     path: /var/ossec/etc/rootcheck/rootkit_trojans.txt
@@ -41,63 +43,118 @@
     state: started
     enabled: yes
 
-- name: Get stats of ossec directory
+# SOCFortress must not key off /var/ossec — that directory exists after a
+# successful manager install, so the old condition never installed the pack.
+- name: Check if SOCFortress rules already installed
   ansible.builtin.stat:
-    path: /var/ossec
-  register: ossec_folder
+    path: /opt/wazuh/.socfortress_rules_installed
+  register: socfortress_marker
 
-- name: Download SOCFORTRESS Wazuh rules script
+- name: Copy SOCFORTRESS Wazuh rules script
   copy:
     src: wazuh_socfortress_rules.sh
     dest: /opt/wazuh/wazuh_socfortress_rules.sh
     mode: "0755"
-  when: not ossec_folder.stat.exists
+  when:
+    - wazuh_install_socfortress_rules | bool
+    - not socfortress_marker.stat.exists
 
-- name: Run SOCFORTRESS Wazuh rules script
-  shell: sudo bash /opt/wazuh/wazuh_socfortress_rules.sh
-  when: not ossec_folder.stat.exists
+- name: Install SOCFORTRESS Wazuh rules
+  shell: bash /opt/wazuh/wazuh_socfortress_rules.sh
+  when:
+    - wazuh_install_socfortress_rules | bool
+    - not socfortress_marker.stat.exists
+  register: socfortress_install
+  ignore_errors: yes
+
+- name: Mark SOCFortress rules as installed
+  ansible.builtin.file:
+    path: /opt/wazuh/.socfortress_rules_installed
+    state: touch
+    mode: '0644'
+  when:
+    - wazuh_install_socfortress_rules | bool
+    - socfortress_install is defined
+    - socfortress_install is succeeded
 
 # ============================================
-# Install MITRE ATT&CK and AD Attack Rules
+# Install MITRE ATT&CK, AD, and lab rules
 # ============================================
 
-- name: Copy MITRE ATT&CK Sysmon rules
+- name: Copy custom Wazuh rule packs
   copy:
-    src: rules/mitre_sysmon_rules.xml
-    dest: /var/ossec/etc/rules/mitre_sysmon_rules.xml
+    src: "rules/{{ item }}"
+    dest: "/var/ossec/etc/rules/{{ item }}"
     owner: wazuh
     group: wazuh
     mode: '0660'
+  loop:
+    - mitre_sysmon_rules.xml
+    - ad_attack_rules.xml
+    - lab_redteam_rules.xml
+    - fileserver_sql_rules.xml
   notify: Restart Wazuh Manager
 
-- name: Copy Active Directory attack rules
-  copy:
-    src: rules/ad_attack_rules.xml
-    dest: /var/ossec/etc/rules/ad_attack_rules.xml
-    owner: wazuh
-    group: wazuh
-    mode: '0660'
-  notify: Restart Wazuh Manager
-
-# Enable Sysmon event collection in ossec.conf
-- name: Check if Sysmon localfile config exists
-  shell: grep -q "Microsoft-Windows-Sysmon" /var/ossec/etc/ossec.conf
-  register: sysmon_config_check
+- name: Check if extra Windows event channels are configured
+  shell: grep -q "Microsoft-Windows-PowerShell/Operational" /var/ossec/etc/ossec.conf
+  register: extra_channels_check
   ignore_errors: yes
   changed_when: false
 
-- name: Add Sysmon event collection to ossec.conf
+- name: Add Sysmon and PowerShell event collection to ossec.conf
   blockinfile:
     path: /var/ossec/etc/ossec.conf
     insertbefore: "</ossec_config>"
-    marker: "<!-- {mark} ANSIBLE MANAGED SYSMON CONFIG -->"
+    marker: "<!-- {mark} ANSIBLE MANAGED WINDOWS CHANNELS -->"
     block: |
       <localfile>
         <location>Microsoft-Windows-Sysmon/Operational</location>
         <log_format>eventchannel</log_format>
       </localfile>
-  when: sysmon_config_check.rc != 0
+      <localfile>
+        <location>Microsoft-Windows-PowerShell/Operational</location>
+        <log_format>eventchannel</log_format>
+      </localfile>
+      <localfile>
+        <location>Windows PowerShell</location>
+        <log_format>eventchannel</log_format>
+      </localfile>
+      <localfile>
+        <location>Microsoft-Windows-TaskScheduler/Operational</location>
+        <log_format>eventchannel</log_format>
+      </localfile>
+  when: extra_channels_check.rc != 0
   notify: Restart Wazuh Manager
+
+- name: Check if Sigma rules already installed
+  ansible.builtin.stat:
+    path: /opt/wazuh/.sigma_rules_installed
+  register: sigma_marker
+
+- name: Copy Sigma converter script
+  copy:
+    src: sigma_to_wazuh.sh
+    dest: /opt/wazuh/sigma_to_wazuh.sh
+    mode: '0755'
+  when: wazuh_install_sigma_rules | bool
+
+- name: Convert and install Sigma rules
+  shell: bash /opt/wazuh/sigma_to_wazuh.sh
+  when:
+    - wazuh_install_sigma_rules | bool
+    - not sigma_marker.stat.exists
+  register: sigma_install
+  ignore_errors: yes
+
+- name: Mark Sigma rules as installed
+  ansible.builtin.file:
+    path: /opt/wazuh/.sigma_rules_installed
+    state: touch
+    mode: '0644'
+  when:
+    - wazuh_install_sigma_rules | bool
+    - sigma_install is defined
+    - sigma_install is succeeded
 
 - name: Extract username and password
   shell: "grep -E 'User:|Password:' /opt/wazuh/wazuh-install-output.txt | awk '{print $NF}'"

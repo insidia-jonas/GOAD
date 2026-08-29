@@ -207,6 +207,30 @@ srv04
 ws01
 ws02
 
+; All Windows hosts (domain + attacker) — eval shutdown, etc.
+[windows:children]
+domain
+
+[windows]
+commando
+
+; Dedicated file server (SMB + dummy corporate files + SQL creds)
+; usage : servers.yml / vulns/fileserver
+[file_server]
+srv04
+
+; Per-host EDR is driven by config.json "edr" lists (wazuh/sysmon/defender/sophos/elastic/none).
+; Inventory groups below are optional overrides / documentation.
+[edr_wazuh:children]
+domain
+
+[edr_sophos]
+
+[edr_elastic]
+
+[edr_none]
+commando
+
 ; attacker VMs
 [attackers]
 kali

@@ -1,6 +1,11 @@
 # Wazuh installation script URL
-# Version 4.10+ required for Windows Server 2025 SCA support
-wazuh_install_script_url: "https://packages.wazuh.com/4.10/wazuh-install.sh"
+# 4.14.x is the current 4.x line (Windows Server 2025 SCA, latest ruleset)
+wazuh_version: "4.14"
+wazuh_install_script_url: "https://packages.wazuh.com/4.14/wazuh-install.sh"
 
-# SOCFORTRESS Wazuh rules script URL
+# Optional extra detection packs (installed after the manager is up)
+wazuh_install_socfortress_rules: true
+wazuh_install_sigma_rules: true
+
+# SOCFORTRESS Wazuh rules script URL (bundled copy is used by default)
 socfortress_rules_script_url: "https://raw.githubusercontent.com/socfortress/Wazuh-Rules/main/wazuh_socfortress_rules.sh"

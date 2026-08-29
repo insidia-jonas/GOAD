@@ -1,0 +1,9 @@
+# Bring-your-own Sophos Endpoint / Intercept X installer.
+# The lab does not redistribute Sophos binaries.
+# Set one of:
+#   sophos_endpoint_installer_url:  https://...
+#   sophos_endpoint_installer_src:  files/SophosSetup.exe   (path relative to this role or extra-files)
+sophos_endpoint_installer_url: ""
+sophos_endpoint_installer_src: ""
+sophos_endpoint_installer_dest: "C:\\setup\\sophos\\SophosSetup.exe"
+sophos_endpoint_install_args: "--quiet"

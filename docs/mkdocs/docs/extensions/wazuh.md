@@ -4,10 +4,11 @@
     Credits and huge thanks to [aleemladha](https://github.com/aleemladha) for the ansible role. [https://github.com/Orange-Cyberdefense/GOAD/pull/215](https://github.com/Orange-Cyberdefense/GOAD/pull/215)
 
 - Extension name : `wazuh`
-- Description : Add wazuh free EDR server and agent on all the domain computers + soc fortress rules (https://github.com/socfortress/Wazuh-Rules)
+- Description : Add wazuh free SIEM/EDR (4.14.x) plus SOCFortress, Sigma and GOAD custom rules
 - Compatibility  : *
-- Providers : virtualbox/azure/vmware/aws/ludus 
+- Providers : virtualbox/azure/vmware/aws/ludus
 - Add a machine  : wazuh (ip_range.51)
+- Agent selection : per host via `config.json` `edr` (see [edr](edr.md))
 
 !!! warning "impacts"
     add a wazuh machine and a wazuh agent on all windows machine"

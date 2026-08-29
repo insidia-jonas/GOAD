@@ -1,0 +1,21 @@
+# Sophos Firewall (SFOS) Home lab configuration
+# API: https://<host>:4444/webconsole/APIController
+# ISO and Home license are NOT redistributed — provide them yourself.
+
+sophos_api_host: "{{ ansible_host }}"
+sophos_api_port: 4444
+sophos_api_user: admin
+# Set at first-boot or via extra-var / SOPHOS_ADMIN_PASSWORD. Do not commit a password.
+sophos_admin_password: "{{ lookup('env', 'SOPHOS_ADMIN_PASSWORD') | default('', true) }}"
+sophos_api_verify: false
+sophos_api_timeout: 45
+sophos_wait_timeout: 600
+
+# Lab IPv4 network (LAN behind Port2 after first-boot)
+sophos_lab_network: "192.168.56.0"
+sophos_lab_prefix: "192.168.56"
+sophos_lab_netmask: "255.255.255.0"
+sophos_lan_zone: "LAN"
+
+# Objects / rule names (idempotent add; ignore "already exists")
+sophos_object_prefix: "GOAD"

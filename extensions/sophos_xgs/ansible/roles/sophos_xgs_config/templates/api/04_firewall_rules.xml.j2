@@ -1,0 +1,85 @@
+<Request>
+  <Login>
+    <Username>{{ sophos_api_user }}</Username>
+    <Password>{{ sophos_admin_password }}</Password>
+  </Login>
+  <Set operation="add">
+    <FirewallRule>
+      <Name>{{ sophos_object_prefix }}-LAN-TO-LAN</Name>
+      <Description>Allow all traffic inside the GOAD lab LAN</Description>
+      <IPFamily>IPv4</IPFamily>
+      <Status>Enable</Status>
+      <Position>Top</Position>
+      <PolicyType>Network</PolicyType>
+      <PositionAfter/>
+      <Schedule>All The Time</Schedule>
+      <Action>Accept</Action>
+      <LogTraffic>Enable</LogTraffic>
+      <SourceZones>
+        <Zone>{{ sophos_lan_zone }}</Zone>
+      </SourceZones>
+      <SourceNetworks>
+        <Network>{{ sophos_object_prefix }}-LAB-NET</Network>
+      </SourceNetworks>
+      <DestinationZones>
+        <Zone>{{ sophos_lan_zone }}</Zone>
+      </DestinationZones>
+      <DestinationNetworks>
+        <Network>{{ sophos_object_prefix }}-LAB-NET</Network>
+      </DestinationNetworks>
+      <Services>
+        <Service>#All</Service>
+      </Services>
+    </FirewallRule>
+    <FirewallRule>
+      <Name>{{ sophos_object_prefix }}-LAN-TO-WAN</Name>
+      <Description>Allow lab hosts outbound for Windows updates / EDR downloads</Description>
+      <IPFamily>IPv4</IPFamily>
+      <Status>Enable</Status>
+      <Position>After</Position>
+      <AfterRuleName>{{ sophos_object_prefix }}-LAN-TO-LAN</AfterRuleName>
+      <PolicyType>Network</PolicyType>
+      <Schedule>All The Time</Schedule>
+      <Action>Accept</Action>
+      <LogTraffic>Enable</LogTraffic>
+      <SourceZones>
+        <Zone>{{ sophos_lan_zone }}</Zone>
+      </SourceZones>
+      <SourceNetworks>
+        <Network>{{ sophos_object_prefix }}-LAB-NET</Network>
+      </SourceNetworks>
+      <DestinationZones>
+        <Zone>WAN</Zone>
+      </DestinationZones>
+      <Services>
+        <Service>#All</Service>
+      </Services>
+    </FirewallRule>
+    <FirewallRule>
+      <Name>{{ sophos_object_prefix }}-KALI-TO-WINDOWS</Name>
+      <Description>Explicit allow from the attacker box to Windows hosts</Description>
+      <IPFamily>IPv4</IPFamily>
+      <Status>Enable</Status>
+      <Position>Top</Position>
+      <PolicyType>Network</PolicyType>
+      <Schedule>All The Time</Schedule>
+      <Action>Accept</Action>
+      <LogTraffic>Enable</LogTraffic>
+      <SourceZones>
+        <Zone>{{ sophos_lan_zone }}</Zone>
+      </SourceZones>
+      <SourceNetworks>
+        <Network>{{ sophos_object_prefix }}-KALI</Network>
+      </SourceNetworks>
+      <DestinationZones>
+        <Zone>{{ sophos_lan_zone }}</Zone>
+      </DestinationZones>
+      <DestinationNetworks>
+        <Network>{{ sophos_object_prefix }}-WINDOWS</Network>
+      </DestinationNetworks>
+      <Services>
+        <Service>#All</Service>
+      </Services>
+    </FirewallRule>
+  </Set>
+</Request>

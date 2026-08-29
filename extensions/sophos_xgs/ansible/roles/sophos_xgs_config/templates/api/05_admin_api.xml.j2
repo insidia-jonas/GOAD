@@ -1,0 +1,18 @@
+<Request>
+  <Login>
+    <Username>{{ sophos_api_user }}</Username>
+    <Password>{{ sophos_admin_password }}</Password>
+  </Login>
+  <Set operation="update">
+    <AdminSettings>
+      <Hostname>GOAD-XGS</Hostname>
+      <Language>english</Language>
+    </AdminSettings>
+    <API>
+      <Enabled>1</Enabled>
+      <AllowedNetworks>
+        <Network>{{ sophos_object_prefix }}-LAB-NET</Network>
+      </AllowedNetworks>
+    </API>
+  </Set>
+</Request>
